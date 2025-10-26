@@ -94,7 +94,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
           _selectedIndex = index;
         });
 
-        if (index == 2) {
+        if (index == 1) {
           final result = await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const StudentAssetsList()),
