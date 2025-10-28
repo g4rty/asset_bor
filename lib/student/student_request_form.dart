@@ -81,22 +81,15 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 🖼️ รูปภาพจาก asset
-            // 🖼️ รูปภาพจาก asset (เวอร์ชันใหม่)
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: AspectRatio(
-                aspectRatio:
-                    16 / 9, // ✅ ควบคุมอัตราส่วนรูป (ปรับได้ เช่น 3/2, 4/3)
+                aspectRatio: 16 / 9,
                 child: InteractiveViewer(
-                  // ✅ ให้ขยาย/ย่อรูปได้ด้วยนิ้วหรือเมาส์
                   minScale: 1,
                   maxScale: 3,
                   child: asset['image'] != null
-                      ? Image.asset(
-                          asset['image'],
-                          fit: BoxFit.cover, // ✅ ให้เต็มกรอบโดยไม่ผิดสัดส่วน
-                        )
+                      ? Image.asset(asset['image'], fit: BoxFit.cover)
                       : Container(
                           color: Colors.grey[400],
                           alignment: Alignment.center,
@@ -111,7 +104,6 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
             ),
             const SizedBox(height: 20),
 
-            // 🧾 การ์ดรายละเอียด + ช่องพิมพ์ Objective
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -140,7 +132,6 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                   ),
                   const SizedBox(height: 6),
 
-                  // 📝 ช่องพิมพ์ Objective
                   TextField(
                     controller: _objectiveController,
                     maxLines: 3,
@@ -159,7 +150,6 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ✅ ปุ่ม Confirm / Cancel
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [

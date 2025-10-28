@@ -1,3 +1,5 @@
+import 'package:asset_bor/student/cancel_status_screen.dart';
+import 'package:asset_bor/student/history_screen.dart';
 import 'package:asset_bor/student/student_assets_list.dart';
 import 'package:flutter/material.dart';
 
@@ -99,13 +101,21 @@ class _StudentHomePageState extends State<StudentHomePage> {
             context,
             MaterialPageRoute(builder: (context) => const StudentAssetsList()),
           );
-
-          // ✅ ถ้ากลับมาพร้อมสัญญาณ refresh
           if (result == 'refresh') {
             setState(() {
               _selectedIndex = 0;
             });
           }
+        } else if (index == 2) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => CancelStatusScreen()),
+          );
+        } else if (index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => HistoryScreen()),
+          );
         }
       },
       child: AnimatedContainer(
@@ -178,7 +188,6 @@ class _StudentHomePageState extends State<StudentHomePage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ✅ รูปภาพ
           Container(
             width: 80,
             height: 80,
@@ -192,7 +201,6 @@ class _StudentHomePageState extends State<StudentHomePage> {
 
           const SizedBox(width: 16),
 
-          // ✅ ส่วนของข้อความและปุ่ม
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +219,6 @@ class _StudentHomePageState extends State<StudentHomePage> {
                   style: const TextStyle(color: _lightTextColor, fontSize: 12),
                 ),
 
-                // ✅ ดันปุ่มลงล่าง
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.bottomRight,

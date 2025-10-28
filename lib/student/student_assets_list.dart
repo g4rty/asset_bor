@@ -1,6 +1,8 @@
+import 'package:asset_bor/student/cancel_status_screen.dart';
 import 'package:flutter/material.dart';
 import 'student_home_page.dart';
-import 'student_request_form.dart'; // ✅ import หน้า request form ใหม่
+import 'student_request_form.dart';
+import 'package:asset_bor/student/history_screen.dart';
 
 class StudentAssetsList extends StatefulWidget {
   const StudentAssetsList({super.key});
@@ -55,7 +57,6 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     }
   }
 
-  // ✅ ส่วนของ Chip กด "Available"
   Widget _buildAvailableChip(Map<String, dynamic> asset) {
     return GestureDetector(
       onTap: () {
@@ -173,7 +174,7 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
                           const SizedBox(height: 14),
                           Align(
                             alignment: Alignment.bottomRight,
-                            child: _buildAvailableChip(asset), // ✅ ใช้ตรงนี้เลย
+                            child: _buildAvailableChip(asset),
                           ),
                         ],
                       ),
@@ -218,6 +219,16 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const StudentHomePage()),
+          );
+        } else if (index == 2) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => CancelStatusScreen()),
+          );
+        } else if (index == 3) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => HistoryScreen()),
           );
         }
       },
