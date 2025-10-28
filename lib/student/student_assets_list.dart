@@ -97,7 +97,7 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () {
-            Navigator.pop(context, 'refresh');
+            Navigator.pop(context, 'restio');
           },
         ),
         title: const Text(

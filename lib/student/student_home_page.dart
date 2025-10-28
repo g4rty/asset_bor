@@ -31,7 +31,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Dash Borad',
+                'Dashboard',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 26,
