@@ -124,3 +124,20 @@ app.post("/register", function (req, res) {
         });
     });
 });
+
+// ==========================
+// GET All Assets
+// ==========================
+app.get("/api/assets", (req, res) => {
+    const sql = `SELECT asset_id, asset_name, asset_status, image FROM asset`;
+
+    con.query(sql, (err, results) => {
+        if (err) {
+            console.error("Database Error:", err);
+            return res.status(500).json({ error: "Database query error" });
+        }
+
+        res.json(results);
+    });
+});
+
