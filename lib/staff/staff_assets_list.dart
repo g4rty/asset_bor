@@ -7,10 +7,10 @@ class StaffAssetsList extends StatefulWidget {
   const StaffAssetsList({super.key});
 
   @override
-  State<StaffAssetsList> createState() => _StaffHomePageState();
+  State<StaffAssetsList> createState() => _StaffAssetsListState();
 }
 
-class _StaffHomePageState extends State<StaffAssetsList> {
+class _StaffAssetsListState extends State<StaffAssetsList> {
   int _selectedIndex = 1;
   final Color _scaffoldBgColor = const Color.fromARGB(255, 39, 39, 39);
   final Color _accentColor = const Color(0xFFD8FFA3);
