@@ -1,17 +1,17 @@
 import 'dart:convert';
 
 import '../auth_storage.dart';
-import '../config.dart'; // must define AppConfig.baseUrl
+import '../config.dart';
 import '../login.dart';
 import 'lecturer_asset_list.dart';
 import 'lecturer_home_page.dart';
 import 'lecturer_requested_item.dart';
+import 'widgets/lecturer_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class LecturerHistory extends StatefulWidget {
-  const LecturerHistory({super.key, required this.lecturerId});
-  final int lecturerId; // e.g., 15
+  const LecturerHistory({super.key});
 
   @override
   State<LecturerHistory> createState() => _LecturerHistoryState();
@@ -23,7 +23,7 @@ class _LecturerHistoryState extends State<LecturerHistory> {
   @override
   void initState() {
     super.initState();
-    _future = _fetchHistory(widget.lecturerId);
+    _future = _fetchHistory();
   }
 
   @override
@@ -31,7 +31,7 @@ class _LecturerHistoryState extends State<LecturerHistory> {
     return Scaffold(
       backgroundColor: const Color(0xFF1F1F1F),
       body: SafeArea(child: _buildBody()),
-      bottomNavigationBar: NavBar(
+      bottomNavigationBar: LecturerNavBar(
         index: 3,
         onTap: (i) {
           if (i == 0) {
@@ -103,28 +103,29 @@ class _LecturerHistoryState extends State<LecturerHistory> {
     );
   }
 
-  Future<List<HistoryItem>> _fetchHistory(int lecturerId) async {
+  Future<List<HistoryItem>> _fetchHistory() async {
     final userId = await AuthStorage.getUserId();
-    if (userId != null) {
-      final url = Uri.parse(
-        '${AppConfig.baseUrl}/lecturers/$lecturerId/history',
-      );
-      final r = await http.get(url);
-      if (r.statusCode != 200) {
-        throw Exception('HTTP ${r.statusCode}: ${r.body}');
-      }
-      final List data = jsonDecode(r.body) as List;
-      return data
-          .map((e) => HistoryItem.fromJson(e as Map<String, dynamic>))
-          .toList();
-    } else {
+    if (userId == null) {
       await AuthStorage.clearUserId();
+      if (!mounted) return [];
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginPage()),
         (route) => false,
       );
       return [];
     }
+
+    final url = Uri.parse(
+      '${AppConfig.baseUrl}/lecturers/$userId/history',
+    );
+    final r = await http.get(url);
+    if (r.statusCode != 200) {
+      throw Exception('HTTP ${r.statusCode}: ${r.body}');
+    }
+    final List data = jsonDecode(r.body) as List;
+    return data
+        .map((e) => HistoryItem.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }
 
