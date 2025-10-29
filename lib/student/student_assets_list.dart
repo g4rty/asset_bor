@@ -14,32 +14,32 @@ class StudentAssetsList extends StatefulWidget {
 class _StudentAssetsListState extends State<StudentAssetsList> {
   final List<Map<String, dynamic>> assets = [
     {
-      'name': 'Tennis Model ABC-123',
+      'name': 'Tennis',
       'description':
-          '24 lbs tension, light head, stiff shaft — precise handling.',
+          '24 lbs string tension, lightweight carbon frame — balanced for power and control.',
       'status': 'Available',
-      'image': 'assets/images/login_dino.png',
+      'image': 'assets/images/Tennis.png',
     },
     {
       'name': 'Basketball',
       'description':
-          '600 g weight, composite leather grip — durable indoor/outdoor.',
+          '600 g weight, composite leather cover — superior grip for indoor and outdoor play.',
       'status': 'Disabled',
-      'image': 'assets/images/basketball.png',
+      'image': 'assets/images/Basketball.png',
     },
     {
       'name': 'Football',
       'description':
-          'Size 5, 0.8 bar pressure, 32 panel PU shell — precise flight.',
+          'Official size, microfiber surface — soft touch and excellent flight stability.',
       'status': 'Borrowed',
-      'image': 'assets/images/football.png',
+      'image': 'assets/images/Football.png',
     },
   ];
 
   static const Color _scaffoldBgColor = Color(0xFF000000);
-  static const Color _darkCardColor = Color(0xFF1C1C1E);
+  static const Color _darkCardColor = Color(0xFF424242);
   static const Color _accentColor = Color(0xFFD4FF00);
-  static const Color _lightTextColor = Color(0xFF8E8E93);
+  static const Color _lightTextColor = Color(0xFFD9D9D9);
 
   int _selectedIndex = 1;
   int? _tappedIndex;
@@ -97,7 +97,10 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () {
-            Navigator.pop(context, 'restio');
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const StudentHomePage()),
+            );
           },
         ),
         title: const Text(
@@ -137,10 +140,10 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 90,
-                      height: 90,
+                      width: 100,
+                      height: 100,
+                      clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
-                        color: Colors.grey[700],
                         borderRadius: BorderRadius.circular(14),
                         image: asset['image'] != null
                             ? DecorationImage(

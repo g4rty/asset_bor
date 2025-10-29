@@ -11,6 +11,7 @@ class BorrowHistory {
   final String returnDate;
   final String objective;
   final String status;
+  final String imagePath;
 
   BorrowHistory({
     required this.item,
@@ -20,6 +21,7 @@ class BorrowHistory {
     required this.returnDate,
     required this.objective,
     required this.status,
+    required this.imagePath,
   });
 }
 
@@ -51,22 +53,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
         context,
         MaterialPageRoute(builder: (context) => CancelStatusScreen()),
       );
-    } else if (index == 3) {
-      // อยู่หน้า History อยู่แล้ว ไม่ต้องทำอะไร
     }
   }
 
   Color _getStatusColor(String status) {
-    if (status == 'Rejected') {
-      return const Color(0xFFEF5350);
-    }
-    return const Color(0xFF66BB6A);
+    if (status == 'Rejected') return const Color(0xFFEF5350);
+    return const Color(0xFFD4FFAA);
   }
 
   String _getStatusText(String status, String returnDate) {
-    if (status == 'Rejected') {
-      return 'Rejected: Under repair';
-    }
+    if (status == 'Rejected') return 'Rejected: Under repair';
     return 'Returned: ${_formatReturnDate(returnDate)}';
   }
 
@@ -84,7 +80,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           'History',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        backgroundColor: Colors.black,
         centerTitle: true,
         elevation: 0,
         leading: IconButton(
@@ -142,87 +138,87 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildHistoryCard(BorrowHistory item) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-      color: const Color(0xFF2C2C2C),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+      color: const Color(0xFF424242),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(10.0),
+        padding: const EdgeInsets.all(14.0),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildItemIcon(),
-            const SizedBox(width: 20),
-            _buildItemDetails(item),
+            _buildItemImage(item.imagePath),
+            const SizedBox(width: 16),
+            Expanded(child: _buildItemDetails(item)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildItemIcon() {
+  Widget _buildItemImage(String imagePath) {
     return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        color: const Color(0xFF3A3A3A),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: const Center(
-        child: Icon(Icons.sports, color: Colors.white, size: 60),
-      ),
+      width: 120,
+      height: 100,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+      child: Image.asset(imagePath, fit: BoxFit.contain),
     );
   }
 
   Widget _buildItemDetails(BorrowHistory item) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildText('Item: ${item.item}', const Color(0xFF7FFF00), 16),
-          _buildText('Borrow ID: ${item.borrowId}', Colors.white70, 14),
-          _buildText('Approver: ${item.approver}', Colors.white70, 14),
-          _buildText('Borrow Date: ${item.borrowDate}', Colors.white70, 14),
-          _buildText('Return Date: ${item.returnDate}', Colors.white70, 14),
-          _buildText('Objective: ${item.objective}', Colors.white70, 14),
-          _buildStatus(item),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${item.borrowId} ${item.item}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        _buildInfo('Approver', item.approver),
+        _buildInfo('Borrow Date', item.borrowDate),
+        _buildInfo('Return Date', item.returnDate),
+        _buildInfo('Objective', item.objective),
+        const SizedBox(height: 10),
+        _buildStatus(item),
+      ],
     );
   }
 
-  Widget _buildText(String text, Color color, double fontSize) {
-    return Text(
-      text,
-      style: TextStyle(color: color, fontSize: fontSize),
+  Widget _buildInfo(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(color: Colors.white70, fontSize: 14),
+      ),
     );
   }
 
   Widget _buildStatus(BorrowHistory item) {
     return Container(
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: _getStatusColor(item.status),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         _getStatusText(item.status, item.returnDate),
-        style: const TextStyle(
-          color: Colors.black,
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: _getStatusTextColor(item.status), fontSize: 14),
       ),
     );
   }
 
+  Color _getStatusTextColor(String status) {
+    if (status == 'Rejected') return Colors.white;
+    return Colors.black;
+  }
+
   final List<BorrowHistory> _borrowHistoryList = [
-    BorrowHistory(
-      item: 'Basketball',
-      borrowId: '02',
-      approver: 'Pub',
-      borrowDate: '12 Aug 25',
-      returnDate: '13 Aug 25',
-      objective: 'Practice',
-      status: 'Returned',
-    ),
     BorrowHistory(
       item: 'Tennis',
       borrowId: '01',
@@ -231,6 +227,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
       returnDate: '12 Aug 25',
       objective: 'Practice',
       status: 'Rejected',
+      imagePath: 'assets/images/Tennis.png',
+    ),
+    BorrowHistory(
+      item: 'Basketball',
+      borrowId: '02',
+      approver: 'Pub',
+      borrowDate: '12 Aug 25',
+      returnDate: '13 Aug 25',
+      objective: 'Practice',
+      status: 'Returned',
+      imagePath: 'assets/images/Basketball.png',
     ),
     BorrowHistory(
       item: 'Football',
@@ -240,6 +247,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       returnDate: '13 Aug 25',
       objective: 'Competition',
       status: 'Returned',
+      imagePath: 'assets/images/Football.png',
     ),
   ];
 }
