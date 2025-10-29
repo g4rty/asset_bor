@@ -7,6 +7,7 @@ import 'lecturer_history.dart';
 import 'lecturer_requested_item.dart';
 import 'widgets/lecturer_nav_bar.dart';
 import 'package:flutter/material.dart';
+import 'widgets/lecturer_logout.dart';
 
 class LecturerHomePage extends StatefulWidget {
   const LecturerHomePage({super.key});
@@ -66,6 +67,18 @@ class _LecturerHomePageState extends State<LecturerHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1F1F1F),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1F1F1F),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Assets',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        actions: const [
+          LecturerLogoutButton(iconColor: Colors.white),
+        ],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           color: const Color(0xFFD4FF00),
