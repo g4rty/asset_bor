@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:asset_bor/staff/staff_assets_list.dart';
 
 class StaffHomePage extends StatefulWidget {
   const StaffHomePage({super.key});
@@ -8,10 +9,11 @@ class StaffHomePage extends StatefulWidget {
 }
 
 class _StaffHomePageState extends State<StaffHomePage> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // ตำแหน่ง Nav ปัจจุบัน (Dashboard)
   final Color _scaffoldBgColor = const Color.fromARGB(255, 39, 39, 39);
   final Color _accentColor = const Color(0xFFD8FFA3);
 
+  // 🔹 Bottom Navigation Bar
   Widget _buildBottomNavBar() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
@@ -33,24 +35,12 @@ class _StaffHomePageState extends State<StaffHomePage> {
     return GestureDetector(
       onTap: () async {
         setState(() => _selectedIndex = index);
-
-        // ✅ เมื่อกด icon แต่ละอัน จะไปหน้าอื่น
-        // if (index == 1) {
-        //   await Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => const StudentAssetsList()),
-        //   );
-        // } else if (index == 2) {
-        //   await Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => const RequestsPage()),
-        //   );
-        // } else if (index == 3) {
-        //   await Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => const HistoryPage()),
-        //   );
-        // }
+        if (index == 1) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffAssetsList()),
+          );
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -68,437 +58,134 @@ class _StaffHomePageState extends State<StaffHomePage> {
     );
   }
 
+  // 🔹 Widget แสดงกราฟแท่ง
+  Widget _buildBarChart() {
+    final barHeights = [120.0, 80.0, 60.0, 100.0];
+    final barColors = [
+      const Color(0xFFB9FF9A),
+      const Color(0xFF9FD7FF),
+      const Color(0xFFAAAAAA),
+      const Color(0xFFFFF69E),
+    ];
+    final labels = ['Available', 'Borrowing', 'Disabled', 'Pending'];
+
+    return SizedBox(
+      height: 220,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: List.generate(barHeights.length, (i) {
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                width: 28,
+                height: barHeights[i],
+                decoration: BoxDecoration(
+                  color: barColors[i],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: 60,
+                child: Text(
+                  labels[i],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 10),
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+
+  // 🔹 กล่องข้อมูลสรุป
+  Widget _buildCountBox(String label, int count) {
+    return Container(
+      width: double.infinity,
+      height: 100,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFEFEF),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '$count',
+            style: const TextStyle(
+              color: Colors.teal,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 39, 39, 39),
+      backgroundColor: _scaffoldBgColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 🔹 Header
-                Row(
-                  children: [
-                    const Text(
-                      'Asset List',
-                      style: TextStyle(color: Colors.white, fontSize: 36),
+                const Text(
+                  'Dashboard',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 🔹 กราฟแท่ง
+                _buildBarChart(),
+                const SizedBox(height: 30),
+
+                // 🔹 กล่องสรุปสถานะ (2x2)
+                Center(
+                  child: SizedBox(
+                    width: 300, // กำหนดความกว้างทั้งหมดของกริด
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.1,
+                      children: [
+                        _buildCountBox('Available', 6),
+                        _buildCountBox('Pending', 4),
+                        _buildCountBox('Disable', 5),
+                        _buildCountBox('Borrowed', 13),
+                      ],
                     ),
-                    const Spacer(),
-                    FilledButton.icon(
-                      onPressed: () {},
-                      label: const Text('Add'),
-                      icon: const Icon(Icons.create_new_folder_sharp),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // 🔹 Asset Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF424242),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 📦 รูปภาพ
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9D9D9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-
-                      // 📄 รายละเอียด Tennis
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '01 : Tennis Model AVC-23',
-                              style: TextStyle(
-                                color: Color(0xFFD8FFA3),
-                                fontSize: 18,
-                                fontFamily: 'IBM Plex Sans Thai',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-
-                            const Text(
-                              'Description: 24 lbs tension, light head, stiff shaft — fast and precise handling.',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontFamily: 'IBM Plex Sans Thai',
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // 🔘 ปุ่มสถานะ + ปุ่มแก้ไข
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                // Available Tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFD8FFA3),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'Available',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 🟡 ปุ่ม Edit (แท้)
-                                FilledButton(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(
-                                      0xFFFFF69E,
-                                    ), // สีเหลือง
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 6,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  onPressed: () {},
-                                  child: const Text(
-                                    'Edit',
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // 🔹 Asset Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF424242),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 📦 รูปภาพ
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9D9D9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-
-                      // 📄 รายละเอียด
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '02 : Basketball',
-                              style: TextStyle(
-                                color: Color(0xFFD8FFA3),
-                                fontSize: 18,
-                                fontFamily: 'IBM Plex Sans Thai',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Text(
-                              'Size 7, 600 g weight, composite leather grip — stable bounce and strong durability indoor/outdoor.',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontFamily: 'IBM Plex Sans Thai',
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // 🔘 ปุ่มสถานะ + ปุ่มแก้ไข
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                // Available Tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromARGB(
-                                      255,
-                                      185,
-                                      185,
-                                      185,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'Disabled',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 🟡 ปุ่ม Edit (แท้)
-                                FilledButton(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(
-                                      0xFFFFF69E,
-                                    ), // สีเหลือง
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 6,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  onPressed: () {},
-                                  child: const Text(
-                                    'Edit',
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // 🔹 Asset Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF424242),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 📦 รูปภาพ
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9D9D9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-
-                      // 📄 รายละเอียด
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '03 : Football',
-                              style: TextStyle(
-                                color: Color(0xFFD8FFA3),
-                                fontSize: 18,
-                                fontFamily: 'IBM Plex Sans Thai',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Text(
-                              'Size 5, 0.8 bar pressure, 32 panel PU shell — precise flight and consistent touch.',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontFamily: 'IBM Plex Sans Thai',
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // 🔘 ปุ่มสถานะ + ปุ่มแก้ไข
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                // Available Tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromARGB(
-                                      255,
-                                      129,
-                                      230,
-                                      255,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'Borrowed',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 🟡 ปุ่ม Edit (แท้)
-                                FilledButton(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(
-                                      0xFFFFF69E,
-                                    ), // สีเหลือง
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 6,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  onPressed: () {},
-                                  child: const Text(
-                                    'Edit',
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // 🔹 Asset Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF424242),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 📦 รูปภาพ
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9D9D9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-
-                      // 📄 รายละเอียด
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '04 : Volleyball',
-                              style: TextStyle(
-                                color: Color(0xFFD8FFA3),
-                                fontSize: 18,
-                                fontFamily: 'IBM Plex Sans Thai',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Text(
-                              'Size 5, 260–280 g weight, microfiber PU cover — soft touch and stable trajectory for indoor play.',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontFamily: 'IBM Plex Sans Thai',
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // 🔘 ปุ่มสถานะ + ปุ่มแก้ไข
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                // Available Tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromARGB(
-                                      255,
-                                      185,
-                                      185,
-                                      185,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'Disabled',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 🟡 ปุ่ม Edit (แท้)
-                                FilledButton(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(
-                                      0xFFFFF69E,
-                                    ), // สีเหลือง
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 6,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  onPressed: () {},
-                                  child: const Text(
-                                    'Edit',
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ],
