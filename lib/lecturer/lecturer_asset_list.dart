@@ -1,345 +1,259 @@
 import 'dart:convert';
-
-import '/config.dart';
-import '/lecturer/lecturer_history.dart';
-import '/lecturer/lecturer_home_page.dart';
-import '/lecturer/lecturer_requested_item.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class Asset {
-  const Asset({
-    required this.id,
-    required this.name,
-    required this.status,
-    this.description,
-    this.imagePath,
-  });
-
-  final int id;
-  final String name;
-  final String status;
-  final String? description;
-  final String? imagePath;
-
-  factory Asset.fromJson(Map<String, dynamic> json) {
-    return Asset(
-      id: json['asset_id'] as int? ?? 0,
-      name: (json['asset_name'] ?? 'Untitled asset').toString(),
-      status: (json['asset_status'] ?? 'Unknown').toString(),
-      description: (json['description'] ?? '').toString(),
-      imagePath: json['image'] as String?,
-    );
-  }
-}
+import '../config.dart';
+import 'lecturer_home_page.dart';
+import 'lecturer_requested_item.dart';
+import 'lecturer_history.dart';
 
 class LecturerAssetList extends StatefulWidget {
   const LecturerAssetList({super.key});
-
   @override
   State<LecturerAssetList> createState() => _LecturerAssetListState();
 }
 
 class _LecturerAssetListState extends State<LecturerAssetList> {
-  final List<Asset> _assets = [];
-  bool _isLoading = false;
-  String? _errorMessage;
-  int _selectedTab = 1;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAssets();
-  }
-
-  Future<void> _loadAssets() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final response = await http.get(Uri.parse('${AppConfig.baseUrl}/api/assets'));
-      if (response.statusCode != 200) {
-        throw Exception('Server responded with ${response.statusCode}');
-      }
-
-      final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
-      final loadedAssets =
-          data.map((item) => Asset.fromJson(item as Map<String, dynamic>)).toList();
-
-      setState(() {
-        _assets
-          ..clear()
-          ..addAll(loadedAssets);
-      });
-    } catch (error) {
-      setState(() {
-        _errorMessage = 'Could not load assets. $error';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  String? _imageUrl(String? path) {
-    if (path == null || path.isEmpty) {
-      return null;
-    }
-    if (path.startsWith('http')) {
-      return path;
-    }
-    final cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    return '${AppConfig.baseUrl}/$cleanPath';
-  }
-
-  Color _chipColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'available':
-        return const Color(0xFFC4FF9D);
-      case 'borrowed':
-        return const Color(0xFF7ED9FF);
-      case 'disabled':
-        return const Color(0xFFBDBDBD);
-      default:
-        return const Color(0xFFE0E0E0);
-    }
-  }
+  int index = 1; // start on second tab
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1F1F1F),
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(24, 24, 24, 12),
-                  child: Text(
-                    'Asset List',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: _buildBody(),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SafeArea(
-              top: false,
-              child: _BottomNavBar(
-                currentIndex: _selectedTab,
-                onTap: _onTabSelected,
-              ),
-            ),
-          ),
-        ],
+      body: SafeArea(child: AssetListView(fetch: fetchAssets)),
+      bottomNavigationBar: NavBar(
+        index: index,
+        onTap: (i) {
+          setState(() => index = i);
+          if (i == 0) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LecturerHomePage()),
+            );
+          } else if (i == 1) {
+            // current page
+            return;
+          } else if (i == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LecturerRequestedItem()),
+            );
+          } else if (i == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LecturerHistory()),
+            );
+          }
+        },
       ),
     );
   }
+}
 
-  void _onTabSelected(int index) {
-    if (index == _selectedTab) {
-      return;
-    }
+class AssetItem {
+  final int id;
+  final String name;
+  final String status;
+  final String image;
+  AssetItem({
+    required this.id,
+    required this.name,
+    required this.status,
+    required this.image,
+  });
+  factory AssetItem.fromJson(Map<String, dynamic> j) => AssetItem(
+    id: j['asset_id'] as int,
+    name: j['asset_name'] as String,
+    status: j['asset_status'] as String,
+    image: (j['image'] as String?) ?? '',
+  );
+}
 
-    Widget? destination;
-    switch (index) {
-      case 0:
-        destination = const LecturerHomePage();
-        break;
-      case 1:
-        return; // Already on asset list.
-      case 2:
-        destination = const LecturerRequestedItem();
-        break;
-      case 3:
-        destination = const LecturerHistory();
-        break;
-    }
-
-    if (destination != null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => destination!),
-      );
-    }
+Future<List<AssetItem>> fetchAssets() async {
+  final url = Uri.parse('${AppConfig.baseUrl}/api/assets'); // correct endpoint
+  final r = await http.get(url);
+  if (r.statusCode != 200) {
+    throw Exception('HTTP ${r.statusCode}: ${r.body}');
   }
+  final List data = jsonDecode(r.body) as List;
+  return data
+      .map((e) => AssetItem.fromJson(e as Map<String, dynamic>))
+      .toList();
+}
 
-  Widget _buildBody() {
-    if (_isLoading && _assets.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4FF9D)),
-        ),
-      );
-    }
+class NavBar extends StatelessWidget {
+  const NavBar({super.key, required this.index, required this.onTap});
+  final int index;
+  final ValueChanged<int> onTap;
 
-    if (_errorMessage != null) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
-        children: [
-          Icon(Icons.error_outline, color: Colors.red.shade300, size: 48),
-          const SizedBox(height: 12),
-          Text(
-            _errorMessage!,
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadAssets,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC4FF9D),
-              foregroundColor: Colors.black,
+  static const Color _bg = Colors.black;
+  static const Color _active = Color(0xFFD4FF00);
+  static const Color _inactive = Colors.white;
+
+  @override
+  Widget build(BuildContext context) {
+    final icons = [
+      Icons.home,
+      Icons.shopping_bag_outlined,
+      Icons.list_alt_outlined,
+      Icons.history,
+    ];
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+
+    return Container(
+      height: 72 + bottomInset,
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 12,
+        bottom: bottomInset > 0 ? bottomInset * 0.4 : 12,
+      ),
+      color: _bg,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: List.generate(icons.length, (i) {
+          final selected = i == index;
+          return InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: () => onTap(i),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: selected ? _active : Colors.transparent,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                icons[i],
+                size: 24,
+                color: selected ? Colors.black : _inactive,
+              ),
             ),
-            child: const Text('Try again'),
-          ),
-        ],
-      );
-    }
+          );
+        }),
+      ),
+    );
+  }
+}
 
-    if (_assets.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
-        children: const [
-          Icon(Icons.inventory_2_outlined, color: Colors.white30, size: 72),
-          SizedBox(height: 12),
-          Text(
-            'No assets found.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white60, fontSize: 16),
-          ),
-        ],
-      );
-    }
+class AssetListView extends StatelessWidget {
+  const AssetListView({super.key, required this.fetch});
+  final Future<List<AssetItem>> Function() fetch;
 
-    return ListView.builder(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 140),
-      itemCount: _assets.length,
-      itemBuilder: (context, index) {
-        final asset = _assets[index];
-        final imageUrl = _imageUrl(asset.imagePath);
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: _AssetCard(
-            index: index + 1,
-            asset: asset,
-            imageUrl: imageUrl,
-            chipColor: _chipColor(asset.status),
-          ),
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<AssetItem>>(
+      future: fetch(),
+      builder: (context, s) {
+        if (s.connectionState != ConnectionState.done) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
+          );
+        }
+        if (s.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${s.error}',
+              style: const TextStyle(color: Colors.white),
+            ),
+          );
+        }
+        final items = s.data!;
+        if (items.isEmpty) {
+          return const Center(
+            child: Text('No assets', style: TextStyle(color: Colors.white70)),
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24 + 84),
+          itemCount: items.length + 1,
+          separatorBuilder: (_, __) => const SizedBox(height: 20),
+          itemBuilder: (context, i) {
+            if (i == 0) {
+              return const Text(
+                'Asset List',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            }
+            final a = items[i - 1];
+            return AssetCard(index: i, item: a);
+          },
         );
       },
     );
   }
 }
 
-class _AssetCard extends StatelessWidget {
-  const _AssetCard({
-    required this.index,
-    required this.asset,
-    required this.imageUrl,
-    required this.chipColor,
-  });
+class AssetCard extends StatelessWidget {
+  const AssetCard({super.key, required this.index, required this.item});
+  final int index; // 1-based display number
+  final AssetItem item;
 
-  final int index;
-  final Asset asset;
-  final String? imageUrl;
-  final Color chipColor;
+  static const Color _card = Color(0xFF3A3A3C);
+  static const Color _imgBg = Color(0xFF2C2C2E);
+  static const Color _title = Color(0xFFD4FF00); // lime
 
   @override
   Widget build(BuildContext context) {
-    final description = asset.description?.isNotEmpty == true
-        ? asset.description!
-        : 'No description available.';
-
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF2E2E2E),
+        color: _card,
         borderRadius: BorderRadius.circular(28),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            offset: Offset(0, 6),
-            blurRadius: 12,
-          ),
-        ],
       ),
-      padding: const EdgeInsets.all(20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE6E6E6),
-              borderRadius: BorderRadius.circular(24),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              width: 130,
+              height: 130,
+              color: _imgBg,
+              child: item.image.isNotEmpty
+                  ? Image.asset(
+                      'assets/images/${item.image}', 
+                      fit: BoxFit.cover,
+                    )
+                  : const Icon(Icons.image, color: Colors.white24, size: 36),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: imageUrl == null
-                ? const Icon(Icons.image_not_supported_outlined, color: Colors.black38, size: 32)
-                : Image.network(
-                    imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.image_not_supported_outlined,
-                      color: Colors.black38,
-                      size: 32,
-                    ),
-                  ),
           ),
-          const SizedBox(width: 20),
+
+          const SizedBox(width: 16),
+          // text + chip
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${index.toString().padLeft(2, '0')} : ${asset.name}',
+                  '${index.toString().padLeft(2, '0')} ${item.name}',
                   style: const TextStyle(
-                    color: Color(0xFFB6FF7B),
+                    color: _title,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  description,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: chipColor,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Text(
-                      asset.status,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                const SizedBox(height: 8),
+                const Text(
+                  // replace when backend returns description
+                  'Description unavailable.',
+                  style: TextStyle(
+                    color: Color(0xFFB0B0B0),
+                    fontSize: 12,
+                    height: 1.35,
                   ),
+                ),
+                const SizedBox(height: 50),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _statusChip(item.status),
                 ),
               ],
             ),
@@ -348,105 +262,41 @@ class _AssetCard extends StatelessWidget {
       ),
     );
   }
-}
 
-class _BottomNavBar extends StatelessWidget {
-  const _BottomNavBar({required this.currentIndex, required this.onTap});
-
-  final int currentIndex;
-  final ValueChanged<int> onTap;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _statusChip(String status) {
+    late Color bg;
+    late Color fg;
+    late String label;
+    switch (status) {
+      case 'Available':
+        bg = const Color(0xFFDFFFAE);
+        fg = Colors.black;
+        label = 'Available';
+        break;
+      case 'Borrowed':
+        bg = const Color(0xFFAEE4FF);
+        fg = Colors.black;
+        label = 'Borrowed';
+        break;
+      case 'Disable':
+        bg = const Color(0xFF9E9E9E);
+        fg = Colors.black;
+        label = 'Disabled';
+        break;
+      default:
+        bg = const Color(0xFFBDBDBD);
+        fg = Colors.black;
+        label = status;
+    }
     return Container(
-      color: Colors.transparent,
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-      child: Material(
-        color: Colors.black,
-        elevation: 18,
-        shadowColor: Colors.black54,
-        borderRadius: BorderRadius.circular(32),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _NavItem(
-                icon: Icons.home,
-                label: 'Home',
-                selected: currentIndex == 0,
-                onTap: () => onTap(0),
-              ),
-              _NavItem(
-                icon: Icons.inventory_2_outlined,
-                label: 'Assets',
-                selected: currentIndex == 1,
-                onTap: () => onTap(1),
-              ),
-              _NavItem(
-                icon: Icons.shopping_basket_outlined,
-                label: 'Requests',
-                selected: currentIndex == 2,
-                onTap: () => onTap(2),
-              ),
-              _NavItem(
-                icon: Icons.access_time,
-                label: 'History',
-                selected: currentIndex == 3,
-                onTap: () => onTap(3),
-              ),
-            ],
-          ),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
       ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = selected ? Colors.black : Colors.white70;
-    return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFFC4FF9D) : Colors.transparent,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
+      child: Text(
+        label,
+        style: TextStyle(color: fg, fontWeight: FontWeight.w600),
       ),
     );
   }

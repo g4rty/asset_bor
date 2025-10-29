@@ -129,15 +129,20 @@ app.post("/register", function (req, res) {
 // GET All Assets
 // ==========================
 app.get("/api/assets", (req, res) => {
-    const sql = `SELECT asset_id, asset_name, asset_status, image FROM asset`;
+  const sql = `
+    SELECT
+      id     AS asset_id,
+      name   AS asset_name,
+      status AS asset_status,
+      image
+    FROM assets
+  `;
 
-    con.query(sql, (err, results) => {
-        if (err) {
-            console.error("Database Error:", err);
-            return res.status(500).json({ error: "Database query error" });
-        }
-
-        res.json(results);
-    });
+  con.query(sql, (err, results) => {
+    if (err) {
+      console.error("Database Error:", err);
+      return res.status(500).json({ error: "Database query error" });
+    }
+    res.json(results);
+  });
 });
-
