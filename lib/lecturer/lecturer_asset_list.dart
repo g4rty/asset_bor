@@ -31,7 +31,7 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
       return const [];
     }
 
-    final url = Uri.parse('${AppConfig.baseUrl}/api/assets');
+    final url = Uri.parse('${AppConfig.baseUrl}/lecturers/assets');
     final resp = await http.get(url);
     if (resp.statusCode != 200) {
       throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
