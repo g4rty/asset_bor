@@ -11,14 +11,11 @@ class _LecturerHomePageState extends State<LecturerHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lecturer Portal'),
-      ),
-      body: const SafeArea(
-        child: Center(
-          child: Text('home test'),
-        ),
-      ),
+      backgroundColor: const Color(0xFF1F1F1F),
+      body: SafeArea(child: Column(children: [
+
+      ],
+    )),
     );
   }
 }
