@@ -85,29 +85,29 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
               borderRadius: BorderRadius.circular(16),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: InteractiveViewer(
-                  minScale: 1,
-                  maxScale: 3,
-                  child: asset['image'] != null
-                      ? Image.asset(asset['image'], fit: BoxFit.cover)
-                      : Container(
-                          color: Colors.grey[400],
-                          alignment: Alignment.center,
-                          child: const Icon(
+                child: Container(
+                  color: Colors.grey[700],
+                  child: InteractiveViewer(
+                    minScale: 1,
+                    maxScale: 3,
+                    child: asset['image'] != null
+                        ? Image.asset(asset['image'], fit: BoxFit.contain)
+                        : const Icon(
                             Icons.image,
                             size: 50,
-                            color: Colors.black54,
+                            color: Colors.white54,
                           ),
-                        ),
+                  ),
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
 
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _cardBg,
+                color: Colors.grey[800],
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -118,17 +118,21 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
+                      fontSize: 20,
                     ),
                   ),
                   const SizedBox(height: 6),
                   const Text(
                     "23 Aug 25 - 24 Aug 25",
-                    style: TextStyle(color: Colors.white70),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   const Text(
                     "Objective",
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                   const SizedBox(height: 6),
 

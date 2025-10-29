@@ -14,59 +14,119 @@ class _StudentHomePageState extends State<StudentHomePage> {
   int _selectedIndex = 0;
 
   static const Color _scaffoldBgColor = Color(0xFF000000);
-  static const Color _darkCardColor = Color(0xFF1C1C1E);
+  static const Color _darkCardColor = Color.fromARGB(255, 29, 29, 31);
   static const Color _imageBgColor = Color(0xFF2C2C2E);
   static const Color _accentColor = Color(0xFFD4FF00);
   static const Color _ruleNumberBgColor = Color(0xFFE53935);
-  static const Color _lightTextColor = Color(0xFF8E8E93);
+  static const Color _lightTextColor = Color.fromARGB(255, 224, 224, 224);
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1C1C1E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Text(
+            'Logout',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'Are you sure you want to logout?',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/login');
+              },
+              child: const Text(
+                'Logout',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _scaffoldBgColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Dashboard',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Dashboard',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.logout,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          _showLogoutDialog(context);
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+                  _buildRulesSection(),
+                  const SizedBox(height: 32),
+                  _buildAssetCard(
+                    imagePath: 'assets/images/Tennis.png',
+                    title: '01 : TENNIS RACKET',
+                    subtitle: '24 lbs tension, light head, stiff shaft',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAssetCard(
+                    imagePath: 'assets/images/Basketball.png',
+                    title: '02 : BASKETBALL',
+                    subtitle: '600 g weight, composite leather cover',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAssetCard(
+                    imagePath: 'assets/images/Football.png',
+                    title: '03 : FOOTBALL',
+                    subtitle: 'Size 5, 0.8 bar pressure, 32-panel PU shell',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAssetCard(
+                    imagePath: 'assets/images/Volleyball.png',
+                    title: '04 : VOLLEYBALL',
+                    subtitle: 'Official size, microfiber surface',
+                  ),
+                  const SizedBox(height: 80),
+                ],
               ),
-              const SizedBox(height: 24),
-              _buildRulesSection(),
-              const SizedBox(height: 32),
-              _buildAssetCard(
-                imagePath: 'assets/images/Latte.png',
-                title: 'TENNIS RACKET',
-                subtitle: '24 lbs tension, light head, stiff shaft',
-              ),
-              const SizedBox(height: 16),
-              _buildAssetCard(
-                imagePath: 'assets/images/delete.png',
-                title: 'TENNIS BALL',
-                subtitle: '24 lbs tension, light head, stiff shaft',
-              ),
-              const SizedBox(height: 16),
-              _buildAssetCard(
-                imagePath: 'assets/images/delete.png',
-                title: 'TENNIS BALL',
-                subtitle: '24 lbs tension, light head, stiff shaft',
-              ),
-              const SizedBox(height: 16),
-              _buildAssetCard(
-                imagePath: 'assets/images/delete.png',
-                title: 'TENNIS BALL',
-                subtitle: '24 lbs tension, light head, stiff shaft',
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
       bottomNavigationBar: _buildBottomNavBar(),
     );
@@ -189,14 +249,15 @@ class _StudentHomePageState extends State<StudentHomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 80,
-            height: 80,
-            padding: const EdgeInsets.all(10),
+            width: 90,
+            height: 90,
             decoration: BoxDecoration(
-              color: _imageBgColor,
               borderRadius: BorderRadius.circular(12),
+              image: DecorationImage(
+                image: AssetImage(imagePath),
+                fit: BoxFit.cover,
+              ),
             ),
-            child: Image.asset(imagePath, fit: BoxFit.contain),
           ),
 
           const SizedBox(width: 16),
@@ -209,17 +270,17 @@ class _StudentHomePageState extends State<StudentHomePage> {
                   title,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: _lightTextColor, fontSize: 12),
+                  style: const TextStyle(color: _lightTextColor, fontSize: 13),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.bottomRight,
                   child: _buildAvailableChip(),
@@ -268,7 +329,7 @@ class _RuleCard extends StatelessWidget {
       height: 190,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
+        color: const Color(0xFF2C2C2E),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
