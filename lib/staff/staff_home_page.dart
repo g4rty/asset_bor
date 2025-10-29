@@ -1,3 +1,5 @@
+// หน้าแรกของ Staff (Dashboard)
+
 import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:flutter/material.dart';
 import 'package:asset_bor/staff/staff_history_page.dart';
@@ -19,7 +21,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
   Widget _buildBottomNavBar() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      color: _scaffoldBgColor,
+      color: Colors.black,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -125,7 +127,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black,
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),

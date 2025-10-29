@@ -17,11 +17,11 @@ class _AddAssetPageState extends State<AddAssetPage> {
 
   final ImagePicker _picker = ImagePicker();
 
-  // ฟังก์ชันเลือกภาพ
+  // เลือกรูปจาก gallery
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
-    ); // เลือกจาก gallery
+    );
     if (pickedFile != null) {
       setState(() {
         _imageFile = File(pickedFile.path);
@@ -29,8 +29,15 @@ class _AddAssetPageState extends State<AddAssetPage> {
     }
   }
 
-  // ฟังก์ชันแสดง popup ยืนยัน
+  // แสดง popup ยืนยัน
   void _showConfirmDialog() {
+    if (_nameController.text.isEmpty || _descriptionController.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) {
@@ -46,7 +53,6 @@ class _AddAssetPageState extends State<AddAssetPage> {
           ),
           actionsAlignment: MainAxisAlignment.spaceEvenly,
           actions: [
-            // ปุ่ม Add
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFFD8FFA3),
@@ -60,17 +66,21 @@ class _AddAssetPageState extends State<AddAssetPage> {
                   'name': _nameController.text,
                   'description': _descriptionController.text,
                   'status': _status,
-                  'imageFile': _imageFile,
+                  'statusColor': _status == 'Available'
+                      ? const Color(0xFFD8FFA3)
+                      : _status == 'Borrowed'
+                      ? const Color(0xFF81E6FF)
+                      : const Color.fromARGB(255, 185, 185, 185),
+                  'imageFile': _imageFile, // File?
                 };
                 Navigator.pop(context); // ปิด popup
-                Navigator.pop(context, newAsset); // ส่งข้อมูลกลับ
+                Navigator.pop(context, newAsset); // ส่ง asset กลับ
               },
               child: const Text(
                 'Add',
                 style: TextStyle(color: Colors.black, fontSize: 16),
               ),
             ),
-            // ปุ่ม Cancel
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFFFF9E9E),
@@ -79,7 +89,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
                   vertical: 8,
                 ),
               ),
-              onPressed: () => Navigator.pop(context), // ปิด popup
+              onPressed: () => Navigator.pop(context),
               child: const Text(
                 'Cancel',
                 style: TextStyle(color: Colors.black, fontSize: 16),
@@ -104,7 +114,6 @@ class _AddAssetPageState extends State<AddAssetPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // แสดงภาพ
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
@@ -130,7 +139,6 @@ class _AddAssetPageState extends State<AddAssetPage> {
                 ),
               ),
               const SizedBox(height: 16),
-
               TextField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -172,7 +180,6 @@ class _AddAssetPageState extends State<AddAssetPage> {
                 style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 32),
-              // ปุ่ม Add Asset (แสดง popup ก่อน)
               FilledButton(
                 onPressed: _showConfirmDialog,
                 style: FilledButton.styleFrom(
