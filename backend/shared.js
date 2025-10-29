@@ -146,3 +146,60 @@ app.get("/api/assets", (req, res) => {
     res.json(results);
   });
 });
+
+app.post('/api/requests/:id/approve', (req, res) => {
+  const { id } = req.params;
+  const { lecturerId } = req.body;
+
+  if (!lecturerId) {
+    return res.status(400).json({ error: 'lecturerId is required' });
+  }
+
+  const sql = `
+    UPDATE borrow_requests
+    SET status = 'approved',
+        approval_date = CURDATE(),
+        approve_by_id = ?
+    WHERE id = ? AND status = 'pending'
+  `;
+
+  con.query(sql, [lecturerId, id], (err, result) => {
+    if (err) {
+      console.error('Database Error:', err);
+      return res.status(500).json({ error: 'Database query error' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ error: 'Request not found or already processed' });
+    }
+    res.json({ message: 'Request approved successfully' });
+  });
+});
+
+app.post('/api/requests/:id/reject', (req, res) => {
+  const { id } = req.params;
+  const { lecturerId, reason } = req.body;
+
+  if (!lecturerId) {
+    return res.status(400).json({ error: 'lecturerId is required' });
+  }
+
+  const sql = `
+    UPDATE borrow_requests
+    SET status = 'rejected',
+        approval_date = CURDATE(),
+        approve_by_id = ?,
+        rejection_reason = ?
+    WHERE id = ? AND status = 'pending'
+  `;
+
+  con.query(sql, [lecturerId, reason || null, id], (err, result) => {
+    if (err) {
+      console.error('Database Error:', err);
+      return res.status(500).json({ error: 'Database query error' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ error: 'Request not found or already processed' });
+    }
+    res.json({ message: 'Request rejected successfully' });
+  });
+});
