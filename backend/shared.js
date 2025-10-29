@@ -147,7 +147,7 @@ app.get("/api/assets", (req, res) => {
   });
 });
 
-app.post('/api/requests/:id/approve', (req, res) => {
+app.post('/requests/:id/approve', (req, res) => {
   const { id } = req.params;
   const { lecturerId } = req.body;
 
@@ -175,7 +175,7 @@ app.post('/api/requests/:id/approve', (req, res) => {
   });
 });
 
-app.post('/api/requests/:id/reject', (req, res) => {
+app.post('/requests/:id/reject', (req, res) => {
   const { id } = req.params;
   const { lecturerId, reason } = req.body;
 
@@ -201,5 +201,33 @@ app.post('/api/requests/:id/reject', (req, res) => {
       return res.status(400).json({ error: 'Request not found or already processed' });
     }
     res.json({ message: 'Request rejected successfully' });
+  });
+});
+
+// GET /api/requests/pending
+app.get('/api/requests/pending', (req, res) => {
+  const sql = `
+    SELECT
+      br.id  AS request_id,
+      br.status,
+      br.request_date,
+      br.borrow_date,
+      br.return_date,
+      br.reason,
+      a.id   AS asset_id,
+      a.name AS asset_name,
+      a.image AS asset_image,
+      u.id   AS borrower_id,
+      CONCAT(u.first_name,' ',u.last_name) AS borrower_name
+    FROM borrow_requests br
+    JOIN assets a ON a.id = br.asset_id
+    JOIN users  u ON u.id = br.borrower_id
+    WHERE br.status = 'pending'
+    ORDER BY br.request_date DESC, br.id DESC;
+  `;
+
+  con.query(sql, (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database query error' });
+    res.json(rows);
   });
 });
