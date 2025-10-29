@@ -205,7 +205,7 @@ app.post('/requests/:id/reject', (req, res) => {
 });
 
 // GET /api/requests/pending
-app.get('/api/requests/pending', (req, res) => {
+app.get('/requests/pending', (req, res) => {
   const sql = `
     SELECT
       br.id  AS request_id,
