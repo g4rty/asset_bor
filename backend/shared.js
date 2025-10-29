@@ -231,3 +231,29 @@ app.get('/requests/pending', (req, res) => {
     res.json(rows);
   });
 });
+
+app.get('/lecturers/:lecturerId/history', (req, res) => {
+    const { lecturerId } = req.params;
+
+    const sql = `
+    SELECT
+      br.id  AS request_id,
+      br.status AS decision_status,        -- 'approved' | 'rejected'
+      br.rejection_reason,
+      br.approval_date,
+      br.borrow_date, br.return_date, br.returned_date,
+      a.id   AS asset_id,  a.name AS asset_name, a.image AS asset_image,
+      u.id   AS borrower_id,
+      CONCAT(u.first_name,' ',u.last_name) AS borrower_name
+    FROM borrow_requests br
+    JOIN assets a ON a.id = br.asset_id
+    JOIN users  u ON u.id = br.borrower_id
+    WHERE br.approve_by_id = ? AND br.status IN ('approved','rejected')
+    ORDER BY br.approval_date DESC, br.id DESC;
+  `;
+
+    con.query(sql, [Number(lecturerId)], (err, rows) => {
+        if (err) return res.status(500).json({ error: 'Database query error' });
+        res.json(rows);
+    });
+});
