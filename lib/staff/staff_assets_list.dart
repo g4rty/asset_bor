@@ -42,6 +42,16 @@ class _StaffHomePageState extends State<StaffAssetsList> {
             context,
             MaterialPageRoute(builder: (context) => const StaffHomePage()),
           );
+          // } else if (index == 2) {
+          //   await Navigator.push(
+          //     context,
+          //     MaterialPageRoute(builder: (context) => const StaffHandPage()),
+          //   );
+          // } else if (index == 3) {
+          //   await Navigator.push(
+          //     context,
+          //     MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
+          //   );
         }
       },
       child: AnimatedContainer(
