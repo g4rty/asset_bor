@@ -1,3 +1,6 @@
+import 'package:asset_bor/staff/staff_home_page.dart';
+import 'package:asset_bor/staff/edit_asset_page.dart';
+import 'package:asset_bor/staff/add_asset_page.dart';
 import 'package:flutter/material.dart';
 
 class StaffAssetsList extends StatefulWidget {
@@ -8,7 +11,7 @@ class StaffAssetsList extends StatefulWidget {
 }
 
 class _StaffHomePageState extends State<StaffAssetsList> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 1;
   final Color _scaffoldBgColor = const Color.fromARGB(255, 39, 39, 39);
   final Color _accentColor = const Color(0xFFD8FFA3);
 
@@ -34,23 +37,12 @@ class _StaffHomePageState extends State<StaffAssetsList> {
       onTap: () async {
         setState(() => _selectedIndex = index);
 
-        // ✅ เมื่อกด icon แต่ละอัน จะไปหน้าอื่น
-        // if (index == 1) {
-        //   await Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => const StudentAssetsList()),
-        //   );
-        // } else if (index == 2) {
-        //   await Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => const RequestsPage()),
-        //   );
-        // } else if (index == 3) {
-        //   await Navigator.push(
-        //     context,
-        //     MaterialPageRoute(builder: (context) => const HistoryPage()),
-        //   );
-        // }
+        if (index == 0) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffHomePage()),
+          );
+        }
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -87,419 +79,75 @@ class _StaffHomePageState extends State<StaffAssetsList> {
                     ),
                     const Spacer(),
                     FilledButton.icon(
-                      onPressed: () {},
+                      onPressed: () async {
+                        final newAsset = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AddAssetPage(),
+                          ),
+                        );
+                        // if (newAsset != null) {
+                        //   // เพิ่ม asset ใหม่ลงใน list ของคุณ
+                        //   // ตอนนี้คุณยังใช้ static list อยู่ ให้ลองเก็บใน state
+                        //   setState(() {
+                        //     // สมมติว่าคุณมี list assets จริง ๆ
+                        //     // _assets.add(newAsset);
+                        //     // สำหรับตัวอย่างนี้ เราอาจต้องเปลี่ยน _buildAssetCard ให้ใช้ list
+                        //   });
+                        // }
+                      },
                       label: const Text('Add'),
                       icon: const Icon(Icons.create_new_folder_sharp),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                // 🔹 Asset Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF424242),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 📦 รูปภาพ
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9D9D9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
 
-                      // 📄 รายละเอียด Tennis
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '01 : Tennis Model AVC-23',
-                              style: TextStyle(
-                                color: Color(0xFFD8FFA3),
-                                fontSize: 18,
-                                fontFamily: 'IBM Plex Sans Thai',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-
-                            const Text(
-                              'Description: 24 lbs tension, light head, stiff shaft — fast and precise handling.',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontFamily: 'IBM Plex Sans Thai',
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // 🔘 ปุ่มสถานะ + ปุ่มแก้ไข
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                // Available Tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFD8FFA3),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'Available',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 🟡 ปุ่ม Edit (แท้)
-                                FilledButton(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(
-                                      0xFFFFF69E,
-                                    ), // สีเหลือง
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 6,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  onPressed: () {},
-                                  child: const Text(
-                                    'Edit',
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                // 🔹 Tennis
+                _buildAssetCard(
+                  imageUrl:
+                      'https://static.vecteezy.com/system/resources/previews/001/844/211/non_2x/tennis-racket-design-illustration-isolated-on-white-background-free-vector.jpg',
+                  name: '01 : Tennis Model AVC-23',
+                  description:
+                      '24 lbs tension, light head, stiff shaft — fast and precise handling.',
+                  status: 'Available',
+                  statusColor: const Color(0xFFD8FFA3),
                 ),
                 const SizedBox(height: 20),
-                // 🔹 Asset Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF424242),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 📦 รูปภาพ
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9D9D9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
 
-                      // 📄 รายละเอียด
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '02 : Basketball',
-                              style: TextStyle(
-                                color: Color(0xFFD8FFA3),
-                                fontSize: 18,
-                                fontFamily: 'IBM Plex Sans Thai',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Text(
-                              'Size 7, 600 g weight, composite leather grip — stable bounce and strong durability indoor/outdoor.',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontFamily: 'IBM Plex Sans Thai',
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // 🔘 ปุ่มสถานะ + ปุ่มแก้ไข
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                // Available Tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromARGB(
-                                      255,
-                                      185,
-                                      185,
-                                      185,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'Disabled',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 🟡 ปุ่ม Edit (แท้)
-                                FilledButton(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(
-                                      0xFFFFF69E,
-                                    ), // สีเหลือง
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 6,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  onPressed: () {},
-                                  child: const Text(
-                                    'Edit',
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                // 🔹 Basketball
+                _buildAssetCard(
+                  imageUrl:
+                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGZNbQ9wHn8pyRwabz1tBIfpEJdaQfi0DPLw&s',
+                  name: '02 : Basketball',
+                  description:
+                      'Size 7, 600 g weight, composite leather grip — stable bounce and strong durability indoor/outdoor.',
+                  status: 'Disabled',
+                  statusColor: const Color.fromARGB(255, 185, 185, 185),
                 ),
                 const SizedBox(height: 20),
-                // 🔹 Asset Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF424242),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 📦 รูปภาพ
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9D9D9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
 
-                      // 📄 รายละเอียด
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '03 : Football',
-                              style: TextStyle(
-                                color: Color(0xFFD8FFA3),
-                                fontSize: 18,
-                                fontFamily: 'IBM Plex Sans Thai',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Text(
-                              'Size 5, 0.8 bar pressure, 32 panel PU shell — precise flight and consistent touch.',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontFamily: 'IBM Plex Sans Thai',
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // 🔘 ปุ่มสถานะ + ปุ่มแก้ไข
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                // Available Tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromARGB(
-                                      255,
-                                      129,
-                                      230,
-                                      255,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'Borrowed',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 🟡 ปุ่ม Edit (แท้)
-                                FilledButton(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(
-                                      0xFFFFF69E,
-                                    ), // สีเหลือง
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 6,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  onPressed: () {},
-                                  child: const Text(
-                                    'Edit',
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                // 🔹 Football
+                _buildAssetCard(
+                  imageUrl:
+                      'https://img.freepik.com/free-vector/soccer-ball-realistic-white-black-picture_1284-8506.jpg?semt=ais_hybrid&w=740&q=80',
+                  name: '03 : Football',
+                  description:
+                      'Size 5, 0.8 bar pressure, 32 panel PU shell — precise flight and consistent touch.',
+                  status: 'Borrowed',
+                  statusColor: const Color.fromARGB(255, 129, 230, 255),
                 ),
                 const SizedBox(height: 20),
-                // 🔹 Asset Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF424242),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 📦 รูปภาพ
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9D9D9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
 
-                      // 📄 รายละเอียด
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '04 : Volleyball',
-                              style: TextStyle(
-                                color: Color(0xFFD8FFA3),
-                                fontSize: 18,
-                                fontFamily: 'IBM Plex Sans Thai',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Text(
-                              'Size 5, 260–280 g weight, microfiber PU cover — soft touch and stable trajectory for indoor play.',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontFamily: 'IBM Plex Sans Thai',
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // 🔘 ปุ่มสถานะ + ปุ่มแก้ไข
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                // Available Tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color.fromARGB(
-                                      255,
-                                      185,
-                                      185,
-                                      185,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'Disabled',
-                                    style: TextStyle(
-                                      color: Colors.black,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // 🟡 ปุ่ม Edit (แท้)
-                                FilledButton(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(
-                                      0xFFFFF69E,
-                                    ), // สีเหลือง
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 6,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  onPressed: () {},
-                                  child: const Text(
-                                    'Edit',
-                                    style: TextStyle(color: Colors.black),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                // 🔹 Volleyball
+                _buildAssetCard(
+                  imageUrl:
+                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcpvSD8HmYBtoa_-hfQm9U2R-5EugTuMlypQ&s',
+                  name: '04 : Volleyball',
+                  description:
+                      'Size 5, 260–280 g weight, microfiber PU cover — soft touch and stable trajectory for indoor play.',
+                  status: 'Disabled',
+                  statusColor: const Color.fromARGB(255, 185, 185, 185),
                 ),
               ],
             ),
@@ -507,6 +155,125 @@ class _StaffHomePageState extends State<StaffAssetsList> {
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(),
+    );
+  }
+
+  // 🔹 ฟังก์ชันสร้างการ์ด (ลดโค้ดซ้ำ)
+  Widget _buildAssetCard({
+    required String imageUrl,
+    required String name,
+    required String description,
+    required String status,
+    required Color statusColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF424242),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // รูป
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              image: DecorationImage(
+                image: NetworkImage(imageUrl),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // รายละเอียด
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: Color(0xFFD8FFA3),
+                    fontSize: 18,
+                    fontFamily: 'IBM Plex Sans Thai',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontFamily: 'IBM Plex Sans Thai',
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // ปุ่ม
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        status,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // ปุ่ม Edit
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFF69E),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 6,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditAssetPage(
+                              assetName: name,
+                              description: description,
+                              status: status,
+                              imageUrl: imageUrl,
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Edit',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
