@@ -70,38 +70,53 @@ class _LoginPageState extends State<LoginPage> {
         }
 
         if (destination != null) {
+          const accent = Color.fromARGB(255, 210, 245, 160);
+          const dark = Color(0xFF1F1F1F);
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
+              backgroundColor: dark,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
               ),
-              title: Text(
+              contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+              title: const Text(
                 'Welcome back!',
                 style: TextStyle(
-                  // color: Color.fromARGB(255, 190, 230, 130),
-                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
                   fontSize: 24,
                 ),
               ),
-              content: Text(
-                'You have successfully logged in',
-                style: TextStyle(fontSize: 16),
+              content: const Text(
+                'You have successfully logged in.',
+                style: TextStyle(
+                  color: Color(0xFFB0B0B0),
+                  fontSize: 16,
+                  height: 1.4,
+                ),
               ),
+              actionsPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               actions: [
-                TextButton(
-                  style: TextButton.styleFrom(backgroundColor: Colors.black),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accent,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
                   onPressed: () {
-                    Navigator.of(context).pop(); // ปิด dialog ก่อน
+                    Navigator.of(context).pop();
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (_) => destination!),
                       (route) => false,
                     );
                   },
-                  child: Text(
-                    'OK',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
+                  child: const Text('Continue'),
                 ),
               ],
             ),
@@ -121,14 +136,46 @@ class _LoginPageState extends State<LoginPage> {
   }
 
  void _showErrorDialog(String message) async {
+    const accent = Color.fromARGB(255, 210, 245, 160);
+    const dark = Color(0xFF1F1F1F);
     await showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Error'),
-          content: Text(message),
+          backgroundColor: dark,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+          title: const Text(
+            'Error',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(
+              color: Color(0xFFB0B0B0),
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+          actionsPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           actions: [
-            TextButton(
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: accent,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('OK'),
             ),

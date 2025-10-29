@@ -7,6 +7,7 @@ import 'lecturer_history.dart';
 import 'lecturer_home_page.dart';
 import 'lecturer_requested_item.dart';
 import 'widgets/lecturer_nav_bar.dart';
+import 'widgets/lecturer_logout.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -47,6 +48,18 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1F1F1F),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1F1F1F),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Assets',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        actions: const [
+          LecturerLogoutButton(iconColor: Colors.white),
+        ],
+      ),
       body: SafeArea(child: AssetListView(fetch: _fetchAssets)),
       bottomNavigationBar: LecturerNavBar(
         index: index,

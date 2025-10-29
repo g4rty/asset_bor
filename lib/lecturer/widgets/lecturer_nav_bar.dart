@@ -7,7 +7,7 @@ class LecturerNavBar extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   static const Color _bg = Colors.black;
-  static const Color _active = Color(0xFFD4FF00);
+  static const Color _active = Color.fromARGB(255, 210, 245, 160);
   static const Color _inactive = Colors.white;
 
   @override
