@@ -71,7 +71,7 @@ app.post("/login", function (req, res) {
                 req.session.userId = user.id;
                 req.session.role = userRoleStr;
 
-                return res.status(200).json({ role: userRoleStr });
+                return res.status(200).json({ role: userRoleStr, id: user.id });
             } else {
                 return res.status(401).send("Wrong password");
             }
@@ -129,15 +129,218 @@ app.post("/register", function (req, res) {
 // GET All Assets
 // ==========================
 app.get("/api/assets", (req, res) => {
-    const sql = `SELECT asset_id, asset_name, asset_status, image FROM asset`;
+    const sql = `
+    SELECT
+      id     AS asset_id,
+      name   AS asset_name,
+      status AS asset_status,
+      image
+    FROM assets
+  `;
 
     con.query(sql, (err, results) => {
         if (err) {
             console.error("Database Error:", err);
             return res.status(500).json({ error: "Database query error" });
         }
-
         res.json(results);
     });
 });
 
+// ==========================
+// Lecturer API
+// ==========================
+
+app.get("/lecturers/assets", (req, res) => {
+  const sql = `
+    WITH out_now AS (
+      SELECT asset_id, COUNT(*) AS out_count
+      FROM borrow_requests
+      WHERE status IN ('approved','timeout') AND returned_date IS NULL
+      GROUP BY asset_id
+    )
+    SELECT
+      a.id   AS asset_id,
+      a.name AS asset_name,
+      a.image,
+      -- if disabled -> Disable
+      -- else if no units left (quantity - out_count <= 0) -> Borrowed
+      -- else keep original status
+      CASE
+        WHEN a.status = 'Disable' THEN 'Disable'
+        WHEN GREATEST(a.quantity - COALESCE(o.out_count,0), 0) = 0 THEN 'Borrowed'
+        ELSE a.status
+      END AS asset_status
+    FROM assets a
+    LEFT JOIN out_now o ON o.asset_id = a.id;
+  `;
+  con.query(sql, (err, rows) => {
+    if (err) return res.status(500).json({ error: "Database query error" });
+    res.json(rows);
+  });
+});
+
+
+app.post('/requests/:id/approve', (req, res) => {
+  const { id } = req.params;
+  const { lecturerId } = req.body;
+
+  if (!lecturerId) {
+    return res.status(400).json({ error: 'lecturerId is required' });
+  }
+
+  const sql = `
+    UPDATE borrow_requests
+    SET status = 'approved',
+        approval_date = CURDATE(),
+        approve_by_id = ?
+    WHERE id = ? AND status = 'pending'
+  `;
+
+  con.query(sql, [lecturerId, id], (err, result) => {
+    if (err) {
+      console.error('Database Error:', err);
+      return res.status(500).json({ error: 'Database query error' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ error: 'Request not found or already processed' });
+    }
+    res.json({ message: 'Request approved successfully' });
+  });
+});
+
+app.post('/requests/:id/reject', (req, res) => {
+  const { id } = req.params;
+  const { lecturerId, reason } = req.body;
+
+  if (!lecturerId) {
+    return res.status(400).json({ error: 'lecturerId is required' });
+  }
+
+  const sql = `
+    UPDATE borrow_requests
+    SET status = 'rejected',
+        approval_date = CURDATE(),
+        approve_by_id = ?,
+        rejection_reason = ?
+    WHERE id = ? AND status = 'pending'
+  `;
+
+  con.query(sql, [lecturerId, reason || null, id], (err, result) => {
+    if (err) {
+      console.error('Database Error:', err);
+      return res.status(500).json({ error: 'Database query error' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ error: 'Request not found or already processed' });
+    }
+    res.json({ message: 'Request rejected successfully' });
+  });
+});
+
+// GET /api/requests/pending
+app.get('/requests/pending', (req, res) => {
+  const sql = `
+    SELECT
+      br.id  AS request_id,
+      br.status,
+      br.request_date,
+      br.borrow_date,
+      br.return_date,
+      br.reason,
+      a.id   AS asset_id,
+      a.name AS asset_name,
+      a.image AS asset_image,
+      u.id   AS borrower_id,
+      CONCAT(u.first_name,' ',u.last_name) AS borrower_name
+    FROM borrow_requests br
+    JOIN assets a ON a.id = br.asset_id
+    JOIN users  u ON u.id = br.borrower_id
+    WHERE br.status = 'pending'
+    ORDER BY br.request_date DESC, br.id DESC;
+  `;
+
+  con.query(sql, (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database query error' });
+    res.json(rows);
+  });
+});
+
+app.get('/lecturers/:lecturerId/history', (req, res) => {
+  const { lecturerId } = req.params;
+
+  const sql = `
+    SELECT
+      br.id  AS request_id,
+      br.status AS decision_status,              -- 'approved' | 'rejected'
+      br.rejection_reason,
+      br.approval_date,
+      br.borrow_date, br.return_date, br.returned_date,
+      a.id   AS asset_id,  a.name AS asset_name, a.image AS asset_image,
+      u.id   AS borrower_id,
+      CONCAT(u.first_name,' ',u.last_name) AS borrower_name
+    FROM borrow_requests br
+    JOIN assets a ON a.id = br.asset_id
+    JOIN users  u ON u.id = br.borrower_id
+    WHERE br.approve_by_id = ? AND br.status IN ('approved','rejected')
+    ORDER BY GREATEST(
+             IFNULL(br.returned_date, '0001-01-01'),
+             IFNULL(br.approval_date, '0001-01-01')
+           ) DESC,
+           br.id DESC;
+  `;
+
+  con.query(sql, [Number(lecturerId)], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database query error' });
+    res.json(rows);
+  });
+});
+
+
+// GET /counts
+app.get('/counts', (req, res) => {
+  const sql = `
+    WITH out_now AS (
+      SELECT asset_id, COUNT(*) AS out_count
+      FROM borrow_requests
+      WHERE status IN ('approved','timeout') AND returned_date IS NULL
+      GROUP BY asset_id
+    )
+    SELECT
+      -- units currently borrowed (only non-disabled assets)
+      COALESCE(SUM(CASE WHEN a.status <> 'Disable'
+                        THEN COALESCE(o.out_count,0) ELSE 0 END),0) AS borrowed_units,
+
+      -- units available now (only non-disabled assets)
+      COALESCE(SUM(CASE WHEN a.status <> 'Disable'
+                        THEN GREATEST(a.quantity - COALESCE(o.out_count,0),0) ELSE 0 END),0) AS available_units,
+
+      -- units disabled (all quantity on disabled assets)
+      COALESCE(SUM(CASE WHEN a.status = 'Disable' THEN a.quantity ELSE 0 END),0) AS disabled_units,
+
+      -- number of pending requests (requests, not units)
+      (SELECT COUNT(*) FROM borrow_requests WHERE status='pending') AS pending_requests
+    FROM assets a
+    LEFT JOIN out_now o ON o.asset_id = a.id;
+  `;
+  con.query(sql, (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Database query error' });
+    res.json(rows[0]);
+  });
+});
+
+// If not return in given date is show timeout automatically.
+const cron = require('node-cron');
+cron.schedule('0 0 * * *', () => {
+  const sql = `
+    UPDATE borrow_requests
+    SET status='timeout'
+    WHERE status='approved'
+      AND returned_date IS NULL
+      AND return_date < CURDATE()
+  `;
+  con.query(sql, (err, r) => {
+    if (err) return console.error('timeout update error:', err);
+    console.log('timeouts marked:', r.affectedRows);
+  });
+}, { timezone: 'Asia/Bangkok' });
