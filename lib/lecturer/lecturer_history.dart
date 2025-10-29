@@ -1,9 +1,13 @@
 import 'dart:convert';
+
+import '../auth_storage.dart';
+import '../config.dart'; // must define AppConfig.baseUrl
+import '../login.dart';
+import 'lecturer_asset_list.dart';
+import 'lecturer_home_page.dart';
+import 'lecturer_requested_item.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../config.dart'; // must define AppConfig.baseUrl
-import '../auth_storage.dart';
-import '../login.dart';
 
 class LecturerHistory extends StatefulWidget {
   const LecturerHistory({super.key, required this.lecturerId});
@@ -26,53 +30,76 @@ class _LecturerHistoryState extends State<LecturerHistory> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1F1F1F),
-      body: SafeArea(
-        child: FutureBuilder<List<HistoryItem>>(
-          future: _future,
-          builder: (context, s) {
-            if (s.connectionState != ConnectionState.done) {
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
-              );
-            }
-            if (s.hasError) {
-              return Center(
-                child: Text(
-                  'Error: ${s.error}',
-                  style: const TextStyle(color: Colors.white),
-                ),
-              );
-            }
-            final rows = s.data!;
-            if (rows.isEmpty) {
-              return const Center(
-                child: Text(
-                  'No history',
-                  style: TextStyle(color: Colors.white70),
-                ),
-              );
-            }
-            return ListView.separated(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-              itemCount: rows.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(height: 20),
-              itemBuilder: (context, i) {
-                if (i == 0) {
-                  return const Text(
-                    'History',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  );
-                }
-                return _HistoryCard(item: rows[i - 1]);
-              },
+      body: SafeArea(child: _buildBody()),
+      bottomNavigationBar: NavBar(
+        index: 3,
+        onTap: (i) {
+          if (i == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const LecturerHomePage()),
             );
-          },
-        ),
+          } else if (i == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const LecturerAssetList()),
+            );
+          } else if (i == 2) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const LecturerRequestedItem()),
+            );
+          }
+        },
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    return FutureBuilder<List<HistoryItem>>(
+      future: _future,
+      builder: (context, s) {
+        if (s.connectionState != ConnectionState.done) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
+          );
+        }
+        if (s.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${s.error}',
+              style: const TextStyle(color: Colors.white),
+            ),
+          );
+        }
+        final rows = s.data!;
+        if (rows.isEmpty) {
+          return const Center(
+            child: Text(
+              'No history',
+              style: TextStyle(color: Colors.white70),
+            ),
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24 + 84),
+          itemCount: rows.length + 1,
+          separatorBuilder: (_, __) => const SizedBox(height: 20),
+          itemBuilder: (context, i) {
+            if (i == 0) {
+              return const Text(
+                'History',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            }
+            return _HistoryCard(item: rows[i - 1]);
+          },
+        );
+      },
     );
   }
 
