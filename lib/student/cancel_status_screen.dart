@@ -26,8 +26,6 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
         context,
         MaterialPageRoute(builder: (context) => StudentAssetsList()),
       );
-    } else if (index == 2) {
-      // อยู่หน้า CancelStatusScreen อยู่แล้ว ไม่ต้องทำอะไร
     } else if (index == 3) {
       Navigator.pushReplacement(
         context,
@@ -65,13 +63,13 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50),
+                      color: const Color(0xFFD4FFAA),
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: const Text(
                       'Confirm',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -89,16 +87,12 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF44336),
+                      color: const Color(0xFFF0A6A6),
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: const Text(
                       'Cancel',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(color: Colors.black, fontSize: 16),
                     ),
                   ),
                 ),
@@ -156,18 +150,18 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: Image.asset(
-                    'assets/images/login_dino.png',
+                    'assets/images/Tennis.png',
                     width: double.infinity,
-                    height: 280, // ลดจาก 250
+                    height: 280,
                     fit: BoxFit.cover,
                   ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  '01 Basketball',
+                  '01 : Tennis',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 24, // ลดจาก 28
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -202,7 +196,12 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                         onPressed: () {},
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 10),
-                          backgroundColor: const Color(0xFFF8D76B),
+                          backgroundColor: const Color.fromARGB(
+                            255,
+                            241,
+                            230,
+                            131,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
