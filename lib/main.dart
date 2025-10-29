@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+
 import 'login.dart' show LoginPage;
 
-void main() => runApp(const AssetBorrowingApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const AssetBorrowingApp());
+}
 
 class AssetBorrowingApp extends StatelessWidget {
   const AssetBorrowingApp({super.key});
