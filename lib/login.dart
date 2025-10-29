@@ -1,12 +1,13 @@
 import 'dart:convert';
 
-import '/config.dart';
+import 'package:asset_bor/lecturer/lecturer_asset_list.dart';
 
+import '/config.dart';
+import 'auth_storage.dart';
 import '/lecturer/lecturer_home_page.dart';
 import '/register.dart';
 import '/staff/staff_home_page.dart';
 import '/student/student_home_page.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -22,6 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String? _role;
+  int? userId;
 
   @override
   void dispose() {
@@ -52,11 +54,15 @@ class _LoginPageState extends State<LoginPage> {
 
         setState(() {
           _role = data['role'] as String?;
+          userId = data['id'] as int;
         });
+  
+        // Save user id.
+        await AuthStorage.setUserId(userId!);
 
         Widget? destination;
         if (_role == 'lecturer') {
-          destination = const LecturerHomePage();
+          destination = const LecturerAssetList();
         } else if (_role == 'staff') {
           destination = const StaffHomePage();
         } else if (_role == 'student') {
