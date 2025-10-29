@@ -17,7 +17,6 @@ class _StudentHomePageState extends State<StudentHomePage> {
   static const Color _darkCardColor = Color(0xFF1C1C1E);
   static const Color _imageBgColor = Color(0xFF2C2C2E);
   static const Color _accentColor = Color(0xFFD4FF00);
-  static const Color _ruleNumberBgColor = Color(0xFFE53935);
   static const Color _lightTextColor = Color(0xFF8E8E93);
 
   @override

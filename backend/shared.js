@@ -71,7 +71,7 @@ app.post("/login", function (req, res) {
                 req.session.userId = user.id;
                 req.session.role = userRoleStr;
 
-                return res.status(200).json({ role: userRoleStr });
+                return res.status(200).json({ role: userRoleStr, id: user.id });
             } else {
                 return res.status(401).send("Wrong password");
             }
@@ -129,7 +129,7 @@ app.post("/register", function (req, res) {
 // GET All Assets
 // ==========================
 app.get("/api/assets", (req, res) => {
-  const sql = `
+    const sql = `
     SELECT
       id     AS asset_id,
       name   AS asset_name,
@@ -138,13 +138,13 @@ app.get("/api/assets", (req, res) => {
     FROM assets
   `;
 
-  con.query(sql, (err, results) => {
-    if (err) {
-      console.error("Database Error:", err);
-      return res.status(500).json({ error: "Database query error" });
-    }
-    res.json(results);
-  });
+    con.query(sql, (err, results) => {
+        if (err) {
+            console.error("Database Error:", err);
+            return res.status(500).json({ error: "Database query error" });
+        }
+        res.json(results);
+    });
 });
 
 app.post('/requests/:id/approve', (req, res) => {

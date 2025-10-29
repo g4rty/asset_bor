@@ -1,11 +1,13 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
+import '../auth_storage.dart';
 import '../config.dart';
+import '../login.dart';
+import 'lecturer_history.dart';
 import 'lecturer_home_page.dart';
 import 'lecturer_requested_item.dart';
-import 'lecturer_history.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class LecturerAssetList extends StatefulWidget {
   const LecturerAssetList({super.key});
@@ -16,11 +18,35 @@ class LecturerAssetList extends StatefulWidget {
 class _LecturerAssetListState extends State<LecturerAssetList> {
   int index = 1; // start on second tab
 
+  Future<List<AssetItem>> _fetchAssets() async {
+    final userId = await AuthStorage.getUserId();
+    if (userId == null) {
+      await AuthStorage.clearUserId();
+      if (!mounted) return const [];
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+      return const [];
+    }
+
+    final url = Uri.parse('${AppConfig.baseUrl}/api/assets');
+    final resp = await http.get(url);
+    if (resp.statusCode != 200) {
+      throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
+    }
+
+    final List<dynamic> data = jsonDecode(resp.body) as List<dynamic>;
+    return data
+        .map((item) => AssetItem.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1F1F1F),
-      body: SafeArea(child: AssetListView(fetch: fetchAssets)),
+      body: SafeArea(child: AssetListView(fetch: _fetchAssets)),
       bottomNavigationBar: NavBar(
         index: index,
         onTap: (i) {
@@ -41,7 +67,9 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
           } else if (i == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const LecturerHistory()),
+              MaterialPageRoute(
+                builder: (_) => const LecturerHistory(lecturerId: 19),
+              ),
             );
           }
         },
@@ -67,18 +95,6 @@ class AssetItem {
     status: j['asset_status'] as String,
     image: (j['image'] as String?) ?? '',
   );
-}
-
-Future<List<AssetItem>> fetchAssets() async {
-  final url = Uri.parse('${AppConfig.baseUrl}/api/assets'); // correct endpoint
-  final r = await http.get(url);
-  if (r.statusCode != 200) {
-    throw Exception('HTTP ${r.statusCode}: ${r.body}');
-  }
-  final List data = jsonDecode(r.body) as List;
-  return data
-      .map((e) => AssetItem.fromJson(e as Map<String, dynamic>))
-      .toList();
 }
 
 class NavBar extends StatelessWidget {
@@ -219,7 +235,7 @@ class AssetCard extends StatelessWidget {
               color: _imgBg,
               child: item.image.isNotEmpty
                   ? Image.asset(
-                      'assets/images/${item.image}', 
+                      'assets/images/${item.image}',
                       fit: BoxFit.cover,
                     )
                   : const Icon(Icons.image, color: Colors.white24, size: 36),
