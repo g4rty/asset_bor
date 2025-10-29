@@ -31,7 +31,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
         ],
       ),
     );
-  }
+  } 
 
   Widget _buildNavItem({required IconData icon, required int index}) {
     final bool isSelected = _selectedIndex == index;
