@@ -1,3 +1,5 @@
+import 'package:asset_bor/staff/staff_handin-out_page.dart';
+import 'package:asset_bor/staff/staff_history_page.dart';
 import 'package:asset_bor/staff/staff_home_page.dart';
 import 'package:asset_bor/staff/edit_asset_page.dart';
 import 'package:asset_bor/staff/add_asset_page.dart';
@@ -42,16 +44,16 @@ class _StaffHomePageState extends State<StaffAssetsList> {
             context,
             MaterialPageRoute(builder: (context) => const StaffHomePage()),
           );
-          // } else if (index == 2) {
-          //   await Navigator.push(
-          //     context,
-          //     MaterialPageRoute(builder: (context) => const StaffHandPage()),
-          //   );
-          // } else if (index == 3) {
-          //   await Navigator.push(
-          //     context,
-          //     MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
-          //   );
+        } else if (index == 2) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffHandPage()),
+          );
+        } else if (index == 3) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
+          );
         }
       },
       child: AnimatedContainer(
