@@ -1,13 +1,15 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../auth_storage.dart';
-import '../config.dart';
-import 'lecturer_asset_list.dart';
-import 'lecturer_history.dart';
-import 'lecturer_requested_item.dart';
-import 'widgets/lecturer_nav_bar.dart';
+
+import 'package:asset_bor/auth_storage.dart';
+import 'package:asset_bor/config.dart';
+import 'package:asset_bor/lecturer/lecturer_asset_list.dart';
+import 'package:asset_bor/lecturer/lecturer_history.dart';
+import 'package:asset_bor/lecturer/lecturer_requested_item.dart';
+import 'package:asset_bor/lecturer/widgets/lecturer_logout.dart';
+import 'package:asset_bor/lecturer/widgets/lecturer_nav_bar.dart';
+import 'package:asset_bor/login.dart';
 import 'package:flutter/material.dart';
-import 'widgets/lecturer_logout.dart';
+import 'package:http/http.dart' as http;
 
 class LecturerHomePage extends StatefulWidget {
   const LecturerHomePage({super.key});
@@ -17,48 +19,203 @@ class LecturerHomePage extends StatefulWidget {
 }
 
 class _LecturerHomePageState extends State<LecturerHomePage> {
-  late Future<_Counts> _future;
+  Map<String, dynamic> counts = {};
+  bool isLoading = true;
+  String? errorMsg;
 
   @override
   void initState() {
     super.initState();
-    _future = _fetchCounts();
-    _ensureUser();
+    ensureUser();
+    loadCounts();
   }
 
-  Future<void> _ensureUser() async {
+  Future<void> ensureUser() async {
     final userId = await AuthStorage.getUserId();
     if (userId == null && mounted) {
       await AuthStorage.clearUserId();
-      Navigator.of(context).pushReplacementNamed('/');
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false,
+      );
     }
   }
 
-  Future<_Counts> _fetchCounts() async {
-    final r = await http.get(Uri.parse('${AppConfig.baseUrl}/counts'));
-    if (r.statusCode != 200) {
-      throw Exception('HTTP ${r.statusCode}: ${r.body}');
+  Future<void> loadCounts() async {
+    setState(() {
+      isLoading = true;
+      errorMsg = null;
+    });
+
+    try {
+      final response = await http.get(Uri.parse('${AppConfig.baseUrl}/counts'));
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (!mounted) return;
+      setState(() {
+        counts = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        errorMsg = '$e';
+        isLoading = false;
+      });
     }
-    final j = jsonDecode(r.body) as Map<String, dynamic>;
-    return _Counts.fromJson(j);
   }
 
-  void _handleNavTap(int i) {
-    if (i == 0) return; // already Home
-    if (i == 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LecturerAssetList()),
+  int readCount(String key) {
+    final v = counts[key];
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    if (v is String) {
+      return int.tryParse(v) ?? double.tryParse(v)?.toInt() ?? 0;
+    }
+    return 0;
+  }
+
+  Widget buildChartBar(String label, int value, Color color) {
+    final height = value.clamp(0, 30) * 6.0 + 12;
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            height: height,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget buildStatCard(String label, int value) {
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2B2B2E),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '$value',
+            style: const TextStyle(
+              color: Color(0xFF42A45A),
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget BodyBuilder() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFD4FF00)));
+    }
+
+    if (errorMsg != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Error: $errorMsg', style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: loadCounts,
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
       );
-    } else if (i == 2) {
+    }
+
+    final available = readCount('available_units');
+    final borrowed = readCount('borrowed_units');
+    final disabled = readCount('disabled_units');
+    final pending = readCount('pending_requests');
+
+    return RefreshIndicator(
+      color: const Color(0xFFD4FF00),
+      backgroundColor: const Color(0xFF1F1F1F),
+      onRefresh: loadCounts,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        children: [
+          const Text(
+            'Dashboard',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              buildChartBar('Available', available, const Color(0xFFB9FF66)),
+              const SizedBox(width: 12),
+              buildChartBar('Borrowing', borrowed, const Color(0xFF7AD8FF)),
+              const SizedBox(width: 12),
+              buildChartBar('Disabled', disabled, const Color(0xFF6C6C70)),
+              const SizedBox(width: 12),
+              buildChartBar('Pending', pending, const Color(0xFFFFFF99)),
+            ],
+          ),
+          const SizedBox(height: 28),
+          Center(
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                buildStatCard('Available', available),
+                buildStatCard('Pending', pending),
+                buildStatCard('Disabled', disabled),
+                buildStatCard('Borrowed', borrowed),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void handleNavTap(int index) {
+    if (index == 0) return;
+    if (index == 1) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LecturerRequestedItem()),
+        MaterialPageRoute(builder: (context) => const LecturerAssetList()),
       );
-    } else if (i == 3) {
+    } else if (index == 2) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LecturerHistory()),
+        MaterialPageRoute(builder: (context) => const LecturerRequestedItem()),
+      );
+    } else if (index == 3) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LecturerHistory()),
       );
     }
   }
@@ -69,7 +226,7 @@ class _LecturerHomePageState extends State<LecturerHomePage> {
       backgroundColor: const Color(0xFF1F1F1F),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F1F1F),
-        elevation: 0,
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           'Assets',
@@ -79,137 +236,8 @@ class _LecturerHomePageState extends State<LecturerHomePage> {
           LecturerLogoutButton(iconColor: Colors.white),
         ],
       ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: const Color(0xFFD4FF00),
-          onRefresh: () async => setState(() => _future = _fetchCounts()),
-          child: FutureBuilder<_Counts>(
-            future: _future,
-            builder: (context, s) {
-              if (s.connectionState != ConnectionState.done) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
-                );
-              }
-              if (s.hasError) {
-                return Center(
-                  child: Text('Error: ${s.error}',
-                      style: const TextStyle(color: Colors.white)),
-                );
-              }
-              final c = s.data!;
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                children: [
-                  const Text('Dashboard',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
-
-                  // very simple bars
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _bar('Available', c.availableUnits, Colors.lightGreenAccent),
-                      _bar('Borrowing', c.borrowedUnits, Colors.lightBlueAccent),
-                      _bar('Disabled', c.disabledUnits, Colors.grey),
-                      _bar('Pending', c.pendingRequests, const Color(0xFFFFFF99)),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // stat cards
-                  Center(
-                    child: Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      children: [
-                        _stat('Available', c.availableUnits),
-                        _stat('Pending', c.pendingRequests),
-                        _stat('Disable', c.disabledUnits),
-                        _stat('Borrowed', c.borrowedUnits),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-      bottomNavigationBar: LecturerNavBar(index: 0, onTap: _handleNavTap),
+      body: SafeArea(child: BodyBuilder()),
+      bottomNavigationBar: LecturerNavBar(index: 0, onTap: handleNavTap),
     );
   }
-
-  Widget _bar(String label, int value, Color color) {
-    final h = (value.clamp(0, 30)) * 6.0 + 8; // simple scale
-    return Expanded(
-      child: Column(
-        children: [
-          Container(height: h, color: color),
-          const SizedBox(height: 8),
-          Text(label,
-              style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  Widget _stat(String label, int value) {
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2B2B2E),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: [
-          Text('$value',
-              style: const TextStyle(
-                  color: Color(0xFF42A45A),
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          Text(label,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
-  }
-}
-int _asInt(dynamic v) {
-  if (v is int) return v;
-  if (v is num) return v.toInt();
-  if (v is String) {
-    final n = int.tryParse(v) ?? double.tryParse(v)?.toInt();
-    return n ?? 0;
-  }
-  return 0;
-}
-
-class _Counts {
-  final int borrowedUnits;
-  final int availableUnits;
-  final int disabledUnits;
-  final int pendingRequests;
-
-  _Counts({
-    required this.borrowedUnits,
-    required this.availableUnits,
-    required this.disabledUnits,
-    required this.pendingRequests,
-  });
-
-  factory _Counts.fromJson(Map<String, dynamic> j) => _Counts(
-        borrowedUnits: _asInt(j['borrowed_units']),
-        availableUnits: _asInt(j['available_units']),
-        disabledUnits: _asInt(j['disabled_units']),
-        pendingRequests: _asInt(j['pending_requests']),
-      );
 }

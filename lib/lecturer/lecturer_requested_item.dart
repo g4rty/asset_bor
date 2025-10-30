@@ -1,274 +1,388 @@
 import 'dart:convert';
 
-import '../auth_storage.dart';
-import '../config.dart';
-import '../login.dart';
-import 'lecturer_asset_list.dart';
-import 'lecturer_history.dart';
-import 'lecturer_home_page.dart';
-import 'widgets/lecturer_nav_bar.dart';
+import 'package:asset_bor/auth_storage.dart';
+import 'package:asset_bor/config.dart';
+import 'package:asset_bor/lecturer/lecturer_asset_list.dart';
+import 'package:asset_bor/lecturer/lecturer_history.dart';
+import 'package:asset_bor/lecturer/lecturer_home_page.dart';
+import 'package:asset_bor/lecturer/widgets/lecturer_logout.dart';
+import 'package:asset_bor/lecturer/widgets/lecturer_nav_bar.dart';
+import 'package:asset_bor/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'widgets/lecturer_logout.dart';
 
 class LecturerRequestedItem extends StatefulWidget {
   const LecturerRequestedItem({super.key});
+
   @override
   State<LecturerRequestedItem> createState() => _LecturerRequestedItemState();
 }
 
 class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
-  bool _isLoading = true;
-  String? _error;
-  List<PendingItem> _items = const [];
+  List<Map<String, dynamic>> items = [];
+  bool isLoading = true;
+  String? errorMsg;
+
+  static const rejectRequestOptions = <String>[
+    'Unavailable on requested dates',
+    'Reserved for class or maintenance',
+    'Invalid or incomplete request',
+    'Temporarily under repair',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadPending();
+    loadPending();
   }
 
-  Future<void> _loadPending() async {
+  Future<void> loadPending() async {
     final userId = await AuthStorage.getUserId();
     if (!mounted) return;
     if (userId == null) {
       await AuthStorage.clearUserId();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
+        MaterialPageRoute(builder: (context) => const LoginPage()),
         (route) => false,
       );
       return;
     }
 
     setState(() {
-      _isLoading = true;
-      _error = null;
+      isLoading = true;
+      errorMsg = null;
     });
 
     try {
-      final data = await _fetchPending();
+      final url = Uri.parse('${AppConfig.baseUrl}/requests/pending');
+      final response = await http.get(url);
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+      final data = List<Map<String, dynamic>>.from(
+        jsonDecode(response.body) as List,
+      );
       if (!mounted) return;
       setState(() {
-        _items = data;
-        _isLoading = false;
+        items = data;
+        isLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = '$e';
-        _isLoading = false;
+        errorMsg = '$e';
+        isLoading = false;
       });
     }
   }
 
-  Future<List<PendingItem>> _fetchPending() async {
-    final url = Uri.parse('${AppConfig.baseUrl}/requests/pending');
-    final r = await http.get(url);
-    if (r.statusCode != 200) throw Exception('HTTP ${r.statusCode}: ${r.body}');
-    final List data = jsonDecode(r.body) as List;
-    return data.map((e) => PendingItem.fromJson(e as Map<String, dynamic>)).toList();
-  }
-
-  Future<void> _approve(int requestId) async {
-    final uid = await AuthStorage.getUserId();
-    if (uid == null) return;
+  Future approveAPI(int requestId) async {
+    final userId = await AuthStorage.getUserId();
+    if (userId == null) return;
     final url = Uri.parse('${AppConfig.baseUrl}/requests/$requestId/approve');
-    final r = await http.post(url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'lecturerId': uid}));
-    if (r.statusCode != 200) throw Exception(r.body);
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'lecturerId': userId}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception(response.body);
+    }
   }
 
-  Future<void> _reject(int requestId, String reason) async {
-    final uid = await AuthStorage.getUserId();
-    if (uid == null) return;
+  Future rejectAPI(int requestId, String reason) async {
+    final userId = await AuthStorage.getUserId();
+    if (userId == null) return;
     final url = Uri.parse('${AppConfig.baseUrl}/requests/$requestId/reject');
-    final r = await http.post(url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'lecturerId': uid, 'reason': reason}));
-    if (r.statusCode != 200) throw Exception(r.body);
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'lecturerId': userId, 'reason': reason}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception(response.body);
+    }
   }
 
-  Future<void> _confirmApprove(PendingItem x) async {
+  Future<void> confirmApprove(Map<String, dynamic> item) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => _ApproveDialog(item: x),
-    );
-    if (ok == true) {
-      await _approve(x.requestId);
-      if (!mounted) return;
-      await _loadPending();
-    }
-  }
-
-  Future<void> _confirmReject(PendingItem x) async {
-    final reason = await showDialog<String>(
-      context: context,
-      builder: (_) => const _RejectDialog(),
-    );
-    if (reason != null && reason.trim().isNotEmpty) {
-      await _reject(x.requestId, reason.trim());
-      if (!mounted) return;
-      await _loadPending();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const bg = Color(0xFF1F1F1F);
-    return Scaffold(
-      backgroundColor: bg,
-
-  appBar: AppBar(
-    backgroundColor: const Color(0xFF1F1F1F),
-    elevation: 0,
-    automaticallyImplyLeading: false,
-    iconTheme: const IconThemeData(color: Colors.white),
-    title: const Text(
-      'Assets',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2C2C2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Approve request',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        actions: const [
-          LecturerLogoutButton(iconColor: Colors.white),
+        content: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF3A3A3C),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  color: const Color(0xFF2C2C2E),
+                  child: (() {
+                    final path = item['asset_image'] as String?;
+                    if (path == null || path.trim().isEmpty) {
+                      return const Icon(
+                        Icons.image,
+                        color: Colors.white24,
+                        size: 28,
+                      );
+                    }
+                    if (path.startsWith('http')) {
+                      return Image.network(path, fit: BoxFit.cover);
+                    }
+                    return Image.asset(
+                      'assets/images/$path',
+                      fit: BoxFit.cover,
+                    );
+                  }()),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      (item['asset_name'] as String? ?? '-').trim().isEmpty
+                          ? '-'
+                          : (item['asset_name'] as String).trim(),
+                      style: const TextStyle(
+                        color: Color(0xFFD4FF00),
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Borrower: ${(item['borrower_name'] as String? ?? '').trim().isEmpty ? '-' : (item['borrower_name'] as String).trim()}',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Return: ${formatDate(item['return_date'])}',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFFDFFFAE),
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Confirm',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFFF07A7A),
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
         ],
       ),
-
-      body: SafeArea(child: _buildBody()),
-      bottomNavigationBar: LecturerNavBar(
-        index: 2,
-        onTap: (i) {
-          if (i == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const LecturerHomePage()),
-            );
-          } else if (i == 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const LecturerAssetList()),
-            );
-          } else if (i == 3) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const LecturerHistory(),
-              ),
-            );
-          }
-        },
-      ),
     );
+
+    if (ok == true) {
+      await approveAPI(item['request_id'] as int);
+      if (!mounted) return;
+      await loadPending();
+    }
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFD4FF00)));
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Error: $_error', style: const TextStyle(color: Colors.white)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadPending,
-              child: const Text('Try again'),
+  Future<void> confirmReject(Map<String, dynamic> item) async {
+    final controller = TextEditingController();
+    String selected = rejectRequestOptions.first;
+    String? reason;
+    try {
+      reason = await showDialog<String>(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (_, setState) => AlertDialog(
+            backgroundColor: const Color(0xFF2C2C2E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-          ],
+            title: const Text(
+              'Rejected Requests',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ...rejectRequestOptions.map(
+                    (option) => RadioListTile<String>(
+                      value: option,
+                      groupValue: selected,
+                      onChanged: (value) =>
+                          setState(() => selected = value ?? selected),
+                      activeColor: const Color(0xFFDFFFAE),
+                      title: Text(
+                        option,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  RadioListTile<String>(
+                    value: 'Other',
+                    groupValue: selected,
+                    onChanged: (value) =>
+                        setState(() => selected = value ?? selected),
+                    activeColor: const Color(0xFFDFFFAE),
+                    title: const Text(
+                      'Other',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  if (selected == 'Other')
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3A3A3C),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: TextField(
+                        controller: controller,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          hintText: 'Reason',
+                          hintStyle: TextStyle(color: Colors.white54),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFDFFFAE),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                onPressed: () {
+                  final v = selected == 'Other'
+                      ? controller.text.trim()
+                      : selected;
+                  Navigator.pop(context, v);
+                },
+                child: const Text('Confirm'),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFFF07A7A),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
         ),
       );
+    } finally {
+      controller.dispose();
     }
 
-    if (_items.isEmpty) {
-      return const Center(
-        child: Text('No requests', style: TextStyle(color: Colors.white70)),
-      );
+    if (reason != null && reason.trim().isNotEmpty) {
+      await rejectAPI(item['request_id'] as int, reason.trim());
+      if (!mounted) return;
+      await loadPending();
     }
-
-    return RefreshIndicator(
-      onRefresh: _loadPending,
-      backgroundColor: const Color(0xFF1F1F1F),
-      color: const Color(0xFFD4FF00),
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 24 + 84),
-        itemCount: _items.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(height: 20),
-        itemBuilder: (context, i) {
-          if (i == 0) {
-            return const Text(
-              'Requests List',
-              style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
-            );
-          }
-          final x = _items[i - 1];
-          return _RequestCard(
-            item: x,
-            onApprove: () => _confirmApprove(x),
-            onReject: () => _confirmReject(x),
-          );
-        },
-      ),
-    );
   }
-}
 
-/* ------------ Model ------------ */
-
-class PendingItem {
-  final int requestId;
-  final String assetName;
-  final String? assetImage;
-  final String borrowerName;
-  final DateTime borrowDate;
-  final DateTime returnDate;
-  final String reason;
-
-  PendingItem({
-    required this.requestId,
-    required this.assetName,
-    required this.assetImage,
-    required this.borrowerName,
-    required this.borrowDate,
-    required this.returnDate,
-    required this.reason,
-  });
-
-  factory PendingItem.fromJson(Map<String, dynamic> j) => PendingItem(
-        requestId: j['request_id'] as int,
-        assetName: j['asset_name'] as String,
-        assetImage: j['asset_image'] as String?,
-        borrowerName: j['borrower_name'] as String,
-        borrowDate: DateTime.parse(j['borrow_date'] as String),
-        returnDate: DateTime.parse(j['return_date'] as String),
-        reason: (j['reason'] as String?) ?? '-',
-      );
-}
-
-/* ------------ Card ------------ */
-
-class _RequestCard extends StatelessWidget {
-  const _RequestCard({required this.item, required this.onApprove, required this.onReject});
-  final PendingItem item;
-  final VoidCallback onApprove;
-  final VoidCallback onReject;
-
-  static const card = Color(0xFF3A3A3C);
-  static const imgBg = Color(0xFF2C2C2E);
-
-  @override
-  Widget build(BuildContext context) {
-    String fmt(DateTime d) {
-      const mon = ['', 'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      return '${d.day.toString().padLeft(2, '0')} ${mon[d.month]} ${d.year % 100}';
+  String formatDate(dynamic value) {
+    DateTime? date;
+    if (value is DateTime) {
+      date = value;
+    } else if (value is String) {
+      date = DateTime.tryParse(value);
     }
+    if (date == null) return '-';
+
+    const month = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    return '${date.day.toString().padLeft(2, '0')} ${month[date.month]} ${date.year % 100}';
+  }
+
+  Widget RequestCardBuilder(Map<String, dynamic> item) {
+    final assetName = ((item['asset_name'] as String?) ?? '').trim();
+    final borrower = ((item['borrower_name'] as String?) ?? '').trim();
+    final borrowDate = item['borrow_date'];
+    final returnDate = item['return_date'];
+    final reason = ((item['reason'] as String?) ?? '').trim();
+    final imagePath = ((item['asset_image'] as String?) ?? '').trim();
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(28)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3A3A3C),
+        borderRadius: BorderRadius.circular(28),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -277,12 +391,23 @@ class _RequestCard extends StatelessWidget {
             child: Container(
               width: 110,
               height: 110,
-              color: imgBg,
-              child: (item.assetImage != null && item.assetImage!.isNotEmpty)
-                  ? (item.assetImage!.startsWith('http')
-                      ? Image.network(item.assetImage!, fit: BoxFit.cover)
-                      : Image.asset('assets/images/${item.assetImage!}', fit: BoxFit.cover))
-                  : const Icon(Icons.image, color: Colors.white24, size: 36),
+              color: const Color(0xFF2C2C2E),
+              child: (() {
+                if (imagePath.isEmpty) {
+                  return const Icon(
+                    Icons.image,
+                    color: Colors.white24,
+                    size: 36,
+                  );
+                }
+                if (imagePath.startsWith('http')) {
+                  return Image.network(imagePath, fit: BoxFit.cover);
+                }
+                return Image.asset(
+                  'assets/images/$imagePath',
+                  fit: BoxFit.cover,
+                );
+              }()),
             ),
           ),
           const SizedBox(width: 16),
@@ -290,18 +415,153 @@ class _RequestCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _line('Item', item.assetName),
-                _line('Borrower', item.borrowerName),
-                _line('Borrow date', fmt(item.borrowDate)),
-                _line('Return date', fmt(item.returnDate)),
-                _line('Objective', item.reason.isEmpty ? '-' : item.reason),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Item : ',
+                          style: TextStyle(color: Colors.white70, fontSize: 15),
+                        ),
+                        TextSpan(
+                          text: assetName.isEmpty ? '-' : assetName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Borrower : ',
+                          style: TextStyle(color: Colors.white70, fontSize: 15),
+                        ),
+                        TextSpan(
+                          text: borrower.isEmpty ? '-' : borrower,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Borrow date : ',
+                          style: TextStyle(color: Colors.white70, fontSize: 15),
+                        ),
+                        TextSpan(
+                          text: formatDate(borrowDate),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Return date : ',
+                          style: TextStyle(color: Colors.white70, fontSize: 15),
+                        ),
+                        TextSpan(
+                          text: formatDate(returnDate),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Objective : ',
+                          style: TextStyle(color: Colors.white70, fontSize: 15),
+                        ),
+                        TextSpan(
+                          text: reason.isEmpty ? '-' : reason,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    _pillBtn(label: 'Approve', bg: const Color(0xFFDFFFAE), onTap: onApprove),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => confirmApprove(item),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDFFFAE),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Approve',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 10),
-                    _pillBtn(label: 'Reject', bg: const Color(0xFFF07A7A), onTap: onReject),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => confirmReject(item),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF07A7A),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Reject',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -312,206 +572,103 @@ class _RequestCard extends StatelessWidget {
     );
   }
 
-  static Widget _line(String k, String v) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: RichText(
-          text: TextSpan(children: [
-            TextSpan(text: '$k : ', style: const TextStyle(color: Colors.white70, fontSize: 15)),
-            TextSpan(text: v, style: const TextStyle(color: Colors.white, fontSize: 15)),
-          ]),
-        ),
+  Widget BodyBuilder() {
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
       );
+    }
 
-  static Widget _pillBtn({required String label, required Color bg, required VoidCallback onTap}) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-        child: Text(label, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
-      ),
-    );
-  }
-}
-
-/* ------------ Dialogs ------------ */
-
-class _RejectDialog extends StatefulWidget {
-  const _RejectDialog();
-
-  @override
-  State<_RejectDialog> createState() => _RejectDialogState();
-}
-
-class _RejectDialogState extends State<_RejectDialog> {
-  String _selected = 'Unavailable on requested dates';
-  final TextEditingController _other = TextEditingController();
-  @override
-  void dispose() { _other.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: const Color(0xFF2C2C2E),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+    if (errorMsg != null) {
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Rejected Requests',
-                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            ..._options.map((o) => RadioListTile<String>(
-                  value: o,
-                  groupValue: _selected,
-                  onChanged: (v) => setState(() => _selected = v!),
-                  activeColor: const Color(0xFFDFFFAE),
-                  title: Text(o, style: const TextStyle(color: Colors.white)),
-                )),
-            RadioListTile<String>(
-              value: 'Other',
-              groupValue: _selected,
-              onChanged: (v) => setState(() => _selected = v!),
-              activeColor: const Color(0xFFDFFFAE),
-              title: Row(
-                children: [
-                  const Text('Others  ', style: TextStyle(color: Colors.white)),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3A3A3C),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: TextField(
-                        controller: _other,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                          hintText: 'Reason',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            Text(
+              'Error: $errorMsg',
+              style: const TextStyle(color: Colors.white),
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _actionBtn('Confirm', const Color(0xFFDFFFAE), () {
-                  final reason = _selected == 'Other' ? _other.text.trim() : _selected;
-                  Navigator.pop(context, reason);
-                }),
-                const SizedBox(width: 16),
-                _actionBtn('Cancel', Colors.white24, () => Navigator.pop(context)),
-              ],
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: loadPending,
+              child: const Text('Try again'),
             ),
           ],
         ),
+      );
+    }
+
+    if (items.isEmpty) {
+      return const Center(
+        child: Text('No requests', style: TextStyle(color: Colors.white70)),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: loadPending,
+      backgroundColor: const Color(0xFF1F1F1F),
+      color: const Color(0xFFD4FF00),
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 108),
+        itemCount: items.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(height: 20),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return const Text(
+              'Requests List',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            );
+          }
+          final item = items[index - 1];
+          return RequestCardBuilder(item);
+        },
       ),
     );
   }
-
-  static final _options = <String>[
-    'Unavailable on requested dates',
-    'Reserved for class or maintenance',
-    'Invalid or incomplete request',
-    'Temporarily under repair',
-  ];
-
-  static Widget _actionBtn(String t, Color c, VoidCallback onTap) => InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(24)),
-          child: Text(t, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
-        ),
-      );
-}
-
-class _ApproveDialog extends StatelessWidget {
-  const _ApproveDialog({required this.item});
-  final PendingItem item;
 
   @override
   Widget build(BuildContext context) {
-    String fmt(DateTime d) {
-      const mon = ['', 'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      return '${d.day.toString().padLeft(2, '0')} ${mon[d.month]} ${d.year % 100}';
-    }
-
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      backgroundColor: const Color(0xFF2C2C2E),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Approved Requests',
-              style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text(item.assetName, style: const TextStyle(color: Color(0xFFD4FF00), fontSize: 18)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: const Color(0xFF3A3A3C), borderRadius: BorderRadius.circular(20)),
-            child: Row(children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  color: const Color(0xFF2C2C2E),
-                  child: (item.assetImage != null && item.assetImage!.isNotEmpty)
-                      ? (item.assetImage!.startsWith('http')
-                          ? Image.network(item.assetImage!, fit: BoxFit.cover)
-                          : Image.asset('assets/images/${item.assetImage!}', fit: BoxFit.cover))
-                      : const Icon(Icons.image, color: Colors.white24),
-                ),
+    return Scaffold(
+      backgroundColor: const Color(0xFF1F1F1F),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1F1F1F),
+        automaticallyImplyLeading: false,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Assets',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        actions: const [LecturerLogoutButton(iconColor: Colors.white)],
+      ),
+      body: SafeArea(child: BodyBuilder()),
+      bottomNavigationBar: LecturerNavBar(
+        index: 2,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const LecturerHomePage()),
+            );
+          } else if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const LecturerAssetList(),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _kv('Borrower', item.borrowerName),
-                  _kv('Date', '${fmt(item.borrowDate)} → ${fmt(item.returnDate)}'),
-                  _kv('Objective', item.reason.isEmpty ? '-' : item.reason),
-                ]),
-              ),
-            ]),
-          ),
-          const SizedBox(height: 14),
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            _btn('Confirm', const Color(0xFFDFFFAE), () => Navigator.pop(context, true)),
-            const SizedBox(width: 16),
-            _btn('Cancel', Colors.white24, () => Navigator.pop(context, false)),
-          ]),
-        ]),
+            );
+          } else if (index == 3) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const LecturerHistory()),
+            );
+          }
+        },
       ),
     );
   }
-
-  static Widget _kv(String k, String v) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: RichText(
-          text: TextSpan(children: [
-            TextSpan(text: '$k: ', style: const TextStyle(color: Colors.white70)),
-            TextSpan(text: v, style: const TextStyle(color: Colors.white)),
-          ]),
-        ),
-      );
-
-  static Widget _btn(String t, Color c, VoidCallback onTap) => InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-          decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(24)),
-          child: Text(t, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
-        ),
-      );
 }

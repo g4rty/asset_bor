@@ -1,15 +1,15 @@
 import 'dart:convert';
 
-import '../auth_storage.dart';
-import '../config.dart';
-import '../login.dart';
-import 'lecturer_asset_list.dart';
-import 'lecturer_home_page.dart';
-import 'lecturer_requested_item.dart';
-import 'widgets/lecturer_nav_bar.dart';
+import 'package:asset_bor/auth_storage.dart';
+import 'package:asset_bor/config.dart';
+import 'package:asset_bor/lecturer/lecturer_asset_list.dart';
+import 'package:asset_bor/lecturer/lecturer_home_page.dart';
+import 'package:asset_bor/lecturer/lecturer_requested_item.dart';
+import 'package:asset_bor/lecturer/widgets/lecturer_logout.dart';
+import 'package:asset_bor/lecturer/widgets/lecturer_nav_bar.dart';
+import 'package:asset_bor/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'widgets/lecturer_logout.dart';
 
 class LecturerHistory extends StatefulWidget {
   const LecturerHistory({super.key});
@@ -19,12 +19,269 @@ class LecturerHistory extends StatefulWidget {
 }
 
 class _LecturerHistoryState extends State<LecturerHistory> {
-  late Future<List<HistoryItem>> _future;
+  List<Map<String, dynamic>> items = [];
+  bool isLoading = true;
+  String? errorMsg;
 
   @override
   void initState() {
     super.initState();
-    _future = _fetchHistory();
+    ensureUser();
+    loadHistory();
+  }
+
+  Future<void> ensureUser() async {
+    final userId = await AuthStorage.getUserId();
+    if (userId == null && mounted) {
+      await AuthStorage.clearUserId();
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false,
+      );
+    }
+  }
+
+  Future<void> loadHistory() async {
+    setState(() {
+      isLoading = true;
+      errorMsg = null;
+    });
+
+    try {
+      final userId = await AuthStorage.getUserId();
+      if (userId == null) {
+        throw Exception('No user');
+      }
+      final response = await http.get(Uri.parse('${AppConfig.baseUrl}/lecturers/$userId/history'));
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+      final data = List<Map<String, dynamic>>.from(jsonDecode(response.body) as List);
+      if (!mounted) return;
+      setState(() {
+        items = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        errorMsg = '$e';
+        isLoading = false;
+      });
+    }
+  }
+
+  String formatDate(dynamic value) {
+    DateTime? date;
+    if (value is DateTime) {
+      date = value;
+    } else if (value is String) {
+      date = value.isEmpty ? null : DateTime.tryParse(value);
+    }
+    if (date == null) return '-';
+    const months = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${date.day.toString().padLeft(2, '0')} ${months[date.month]} ${date.year % 100}';
+  }
+
+  String formatDateRange(dynamic start, dynamic end) {
+    final startText = formatDate(start);
+    final endText = formatDate(end);
+    return '$startText - $endText';
+  }
+
+  Widget buildStatusChip(Map<String, dynamic> item) {
+    final decision = (item['decision_status'] as String?) ?? '';
+    final reason = ((item['rejection_reason'] as String?) ?? '').trim();
+    final borrower = ((item['borrower_name'] as String?) ?? '').trim();
+    final returnedDate = item['returned_date'];
+
+    Color bg;
+    String label;
+
+    if (decision.toLowerCase() == 'rejected') {
+      bg = const Color(0xFFF07A7A);
+      label = 'Rejected: ${reason.isEmpty ? '-' : reason}';
+    } else if (returnedDate != null && returnedDate.toString().isNotEmpty) {
+      bg = const Color(0xFFDFFFAE);
+      label = 'Returned: ${formatDate(returnedDate)}';
+    } else {
+      bg = const Color(0xFFAEE4FF);
+      label = 'Borrowing: ${borrower.isEmpty ? '-' : borrower}';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(label, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget buildHistoryCard(Map<String, dynamic> item) {
+    final assetName = ((item['asset_name'] as String?) ?? '').trim();
+    final borrower = ((item['borrower_name'] as String?) ?? '').trim();
+    final assetImage = ((item['asset_image'] as String?) ?? '').trim();
+    final approvalDate = item['approval_date'];
+    final handoutBy = approvalDate != null && approvalDate.toString().isNotEmpty ? 'Staff' : '-';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3A3A3C),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              width: 96,
+              height: 96,
+              color: const Color(0xFF2C2C2E),
+              child: (() {
+                if (assetImage.isEmpty) {
+                  return const Icon(Icons.image, color: Colors.white24, size: 36);
+                }
+                if (assetImage.startsWith('http')) {
+                  return Image.network(assetImage, fit: BoxFit.cover);
+                }
+                return Image.asset('assets/images/$assetImage', fit: BoxFit.cover);
+              }()),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text('Item : ${assetName.isEmpty ? '-' : assetName}',
+                      style: const TextStyle(color: Colors.white, fontSize: 14)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text('Borrower : ${borrower.isEmpty ? '-' : borrower}',
+                      style: const TextStyle(color: Colors.white, fontSize: 14)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    'Date : ${formatDateRange(item['borrow_date'], item['return_date'])}',
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text('Handout by : $handoutBy',
+                      style: const TextStyle(color: Colors.white, fontSize: 14)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    'Returned by : ${item['returned_date'] == null ? '-' : (borrower.isEmpty ? '-' : borrower)}',
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text('Objective : Practice',
+                      style: const TextStyle(color: Colors.white, fontSize: 14)),
+                ),
+                const SizedBox(height: 12),
+                buildStatusChip(item),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget BodyBuilder() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFD4FF00)));
+    }
+
+    if (errorMsg != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Error: $errorMsg', style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: loadHistory,
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (items.isEmpty) {
+      return const Center(
+        child: Text('No history', style: TextStyle(color: Colors.white70)),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: loadHistory,
+      backgroundColor: const Color(0xFF1F1F1F),
+      color: const Color(0xFFD4FF00),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 108),
+        itemCount: items.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(height: 20),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return const Text(
+              'History',
+              style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+            );
+          }
+          final item = items[index - 1];
+          return buildHistoryCard(item);
+        },
+      ),
+    );
+  }
+
+  void handleNavTap(int index) {
+    if (index == 3) return;
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LecturerHomePage()),
+      );
+    } else if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LecturerAssetList()),
+      );
+    } else if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LecturerRequestedItem()),
+      );
+    }
   }
 
   @override
@@ -33,7 +290,7 @@ class _LecturerHistoryState extends State<LecturerHistory> {
       backgroundColor: const Color(0xFF1F1F1F),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1F1F1F),
-        elevation: 0,
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           'Assets',
@@ -43,280 +300,8 @@ class _LecturerHistoryState extends State<LecturerHistory> {
           LecturerLogoutButton(iconColor: Colors.white),
         ],
       ),
-      body: SafeArea(child: _buildBody()),
-      bottomNavigationBar: LecturerNavBar(
-        index: 3,
-        onTap: (i) {
-          if (i == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const LecturerHomePage()),
-            );
-          } else if (i == 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const LecturerAssetList()),
-            );
-          } else if (i == 2) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const LecturerRequestedItem()),
-            );
-          }
-        },
-      ),
+      body: SafeArea(child: BodyBuilder()),
+      bottomNavigationBar: LecturerNavBar(index: 3, onTap: handleNavTap),
     );
   }
-
-  Widget _buildBody() {
-    return FutureBuilder<List<HistoryItem>>(
-      future: _future,
-      builder: (context, s) {
-        if (s.connectionState != ConnectionState.done) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
-          );
-        }
-        if (s.hasError) {
-          return Center(
-            child: Text(
-              'Error: ${s.error}',
-              style: const TextStyle(color: Colors.white),
-            ),
-          );
-        }
-        final rows = s.data!;
-        if (rows.isEmpty) {
-          return const Center(
-            child: Text(
-              'No history',
-              style: TextStyle(color: Colors.white70),
-            ),
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24 + 84),
-          itemCount: rows.length + 1,
-          separatorBuilder: (_, __) => const SizedBox(height: 20),
-          itemBuilder: (context, i) {
-            if (i == 0) {
-              return const Text(
-                'History',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              );
-            }
-            return _HistoryCard(item: rows[i - 1]);
-          },
-        );
-      },
-    );
-  }
-
-  Future<List<HistoryItem>> _fetchHistory() async {
-    final userId = await AuthStorage.getUserId();
-    if (userId == null) {
-      await AuthStorage.clearUserId();
-      if (!mounted) return [];
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
-      );
-      return [];
-    }
-
-    final url = Uri.parse(
-      '${AppConfig.baseUrl}/lecturers/$userId/history',
-    );
-    final r = await http.get(url);
-    if (r.statusCode != 200) {
-      throw Exception('HTTP ${r.statusCode}: ${r.body}');
-    }
-    final List data = jsonDecode(r.body) as List;
-    return data
-        .map((e) => HistoryItem.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-}
-
-/* ---------- Data model ---------- */
-
-class HistoryItem {
-  final int requestId;
-  final String decisionStatus; // 'approved' | 'rejected'
-  final String? rejectionReason;
-  final String assetName;
-  final String? assetImage;
-  final String borrowerName;
-  final DateTime? approvalDate, borrowDate, returnDate, returnedDate;
-
-  HistoryItem({
-    required this.requestId,
-    required this.decisionStatus,
-    required this.assetName,
-    required this.borrowerName,
-    this.rejectionReason,
-    this.assetImage,
-    this.approvalDate,
-    this.borrowDate,
-    this.returnDate,
-    this.returnedDate,
-  });
-
-  factory HistoryItem.fromJson(Map<String, dynamic> j) => HistoryItem(
-    requestId: j['request_id'] as int,
-    decisionStatus: j['decision_status'] as String,
-    rejectionReason: j['rejection_reason'] as String?,
-    assetName: j['asset_name'] as String,
-    assetImage: j['asset_image'] as String?,
-    borrowerName: j['borrower_name'] as String,
-    approvalDate: _dt(j['approval_date']),
-    borrowDate: _dt(j['borrow_date']),
-    returnDate: _dt(j['return_date']),
-    returnedDate: _dt(j['returned_date']),
-  );
-
-  static DateTime? _dt(dynamic s) => (s == null || (s is String && s.isEmpty))
-      ? null
-      : DateTime.parse(s as String);
-}
-
-/* ---------- UI card ---------- */
-
-class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({required this.item});
-  final HistoryItem item;
-
-  static const Color _card = Color(0xFF3A3A3C);
-  static const Color _imgBg = Color(0xFF2C2C2E);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _card,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              width: 96,
-              height: 96,
-              color: _imgBg,
-              child: item.assetImage != null && item.assetImage!.isNotEmpty
-                  ? Image.asset(
-                      'assets/images/${item.assetImage!}',
-                      fit: BoxFit.cover,
-                    )
-                  : const Icon(Icons.image, color: Colors.white24, size: 36),
-            ),
-          ),
-
-          const SizedBox(width: 16),
-          // details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _line('Item', item.assetName),
-                _line('Borrower', item.borrowerName),
-                _line('Date', _range(item.borrowDate, item.returnDate)),
-                _line('Handout by', item.approvalDate != null ? 'Staff' : '-'),
-                _line(
-                  'Returned by',
-                  item.returnedDate != null ? item.borrowerName : '-',
-                ),
-                _line(
-                  'Objective',
-                  'Practice',
-                ), // replace with real reason if exposed
-                const SizedBox(height: 12),
-                _statusChip(item),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _line(String k, String v) => Padding(
-    padding: const EdgeInsets.only(bottom: 4),
-    child: RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: '$k : ',
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-          TextSpan(
-            text: v,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  static String _range(DateTime? a, DateTime? b) {
-    String f(DateTime? d) => d == null
-        ? '-'
-        : '${d.day.toString().padLeft(2, '0')} ${_mon[d.month]} ${d.year % 100}';
-    return '${f(a)} - ${f(b)}';
-  }
-
-  static const _mon = [
-    '',
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  static Widget _statusChip(HistoryItem x) {
-    // Rejected → red with reason
-    if (x.decisionStatus == 'rejected') {
-      return _chip(
-        const Color(0xFFF07A7A),
-        'Rejected: ${x.rejectionReason ?? '-'}',
-      );
-    }
-    // Approved and returned → green with date
-    if (x.returnedDate != null) {
-      final d =
-          '${x.returnedDate!.day.toString().padLeft(2, '0')} '
-          '${_mon[x.returnedDate!.month]} ${x.returnedDate!.year % 100}';
-      return _chip(const Color(0xFFDFFFAE), 'Returned: $d');
-    }
-    // Approved but not returned → blue with borrower
-    return _chip(const Color(0xFFAEE4FF), 'Borrowing: ${x.borrowerName}');
-  }
-
-  static Widget _chip(Color bg, String text) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-    decoration: BoxDecoration(
-      color: bg,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-      text,
-      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
-    ),
-  );
 }
