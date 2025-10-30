@@ -1,3 +1,5 @@
+import 'package:asset_bor/staff/staff_handin-out_page.dart';
+import 'package:asset_bor/staff/staff_history_page.dart';
 import 'package:asset_bor/staff/staff_home_page.dart';
 import 'package:asset_bor/staff/edit_asset_page.dart';
 import 'package:asset_bor/staff/add_asset_page.dart';
@@ -7,10 +9,10 @@ class StaffAssetsList extends StatefulWidget {
   const StaffAssetsList({super.key});
 
   @override
-  State<StaffAssetsList> createState() => _StaffHomePageState();
+  State<StaffAssetsList> createState() => _StaffAssetsListState();
 }
 
-class _StaffHomePageState extends State<StaffAssetsList> {
+class _StaffAssetsListState extends State<StaffAssetsList> {
   int _selectedIndex = 1;
   final Color _scaffoldBgColor = const Color.fromARGB(255, 39, 39, 39);
   final Color _accentColor = const Color(0xFFD8FFA3);
@@ -29,7 +31,7 @@ class _StaffHomePageState extends State<StaffAssetsList> {
         ],
       ),
     );
-  }
+  } 
 
   Widget _buildNavItem({required IconData icon, required int index}) {
     final bool isSelected = _selectedIndex == index;
@@ -42,16 +44,16 @@ class _StaffHomePageState extends State<StaffAssetsList> {
             context,
             MaterialPageRoute(builder: (context) => const StaffHomePage()),
           );
-          // } else if (index == 2) {
-          //   await Navigator.push(
-          //     context,
-          //     MaterialPageRoute(builder: (context) => const StaffHandPage()),
-          //   );
-          // } else if (index == 3) {
-          //   await Navigator.push(
-          //     context,
-          //     MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
-          //   );
+        } else if (index == 2) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffHandPage()),
+          );
+        } else if (index == 3) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
+          );
         }
       },
       child: AnimatedContainer(

@@ -1,4 +1,6 @@
+import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:flutter/material.dart';
+import 'package:asset_bor/staff/staff_history_page.dart';
 import 'package:asset_bor/staff/staff_assets_list.dart';
 
 class StaffHomePage extends StatefulWidget {
@@ -40,8 +42,19 @@ class _StaffHomePageState extends State<StaffHomePage> {
             context,
             MaterialPageRoute(builder: (context) => const StaffAssetsList()),
           );
+        } else if (index == 2) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffHandPage()),
+          );
+        } else if (index == 3) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
+          );
         }
       },
+
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(10),
