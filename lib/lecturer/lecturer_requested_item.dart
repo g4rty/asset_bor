@@ -120,12 +120,13 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
     return Scaffold(
       backgroundColor: bg,
 
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1F1F1F),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          'Assets',
+  appBar: AppBar(
+    backgroundColor: const Color(0xFF1F1F1F),
+    elevation: 0,
+    automaticallyImplyLeading: false,
+    iconTheme: const IconThemeData(color: Colors.white),
+    title: const Text(
+      'Assets',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         actions: const [
