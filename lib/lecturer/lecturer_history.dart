@@ -135,6 +135,7 @@ class _LecturerHistoryState extends State<LecturerHistory> {
 
   Widget buildHistoryCard(Map<String, dynamic> item) {
     final assetName = ((item['asset_name'] as String?) ?? '').trim();
+    final objective = ((item['reason'] as String? ) ?? '').trim();
     final borrower = ((item['borrower_name'] as String?) ?? '').trim();
     final assetImage = ((item['asset_image'] as String?) ?? '').trim();
     final approvalDate = item['approval_date'];
@@ -202,7 +203,7 @@ class _LecturerHistoryState extends State<LecturerHistory> {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('Objective : Practice',
+                  child: Text('Objective : $objective',
                       style: const TextStyle(color: Colors.white, fontSize: 14)),
                 ),
                 const SizedBox(height: 12),
