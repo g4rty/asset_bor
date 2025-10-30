@@ -1,9 +1,10 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:asset_bor/staff/add_asset_page.dart';
+import 'package:asset_bor/staff/edit_asset_page.dart';
 import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:asset_bor/staff/staff_history_page.dart';
 import 'package:asset_bor/staff/staff_home_page.dart';
-import 'package:asset_bor/staff/edit_asset_page.dart';
-import 'package:asset_bor/staff/add_asset_page.dart';
-import 'package:flutter/material.dart';
 
 class StaffAssetsList extends StatefulWidget {
   const StaffAssetsList({super.key});
@@ -17,10 +18,51 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
   final Color _scaffoldBgColor = const Color.fromARGB(255, 39, 39, 39);
   final Color _accentColor = const Color(0xFFD8FFA3);
 
+  // รายการ assets ทั้งหมด
+  final List<Map<String, dynamic>> _assets = [
+    {
+      'imageFile': null,
+      'imageUrl':
+          'https://static.vecteezy.com/system/resources/previews/001/844/211/non_2x/tennis-racket-design-illustration-isolated-on-white-background-free-vector.jpg',
+      'name': '01 : Tennis Model AVC-23',
+      'description':
+          '24 lbs tension, light head, stiff shaft — fast and precise handling.',
+      'status': 'Available',
+    },
+    {
+      'imageFile': null,
+      'imageUrl':
+          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGZNbQ9wHn8pyRwabz1tBIfpEJdaQfi0DPLw&s',
+      'name': '02 : Basketball',
+      'description':
+          'Size 7, 600 g weight, composite leather grip — stable bounce and strong durability.',
+      'status': 'Disabled',
+    },
+    {
+      'imageFile': null,
+      'imageUrl':
+          'https://img.freepik.com/free-vector/soccer-ball-realistic-white-black-picture_1284-8506.jpg?semt=ais_hybrid&w=740&q=80',
+      'name': '03 : Football',
+      'description':
+          'Size 5, 0.8 bar pressure, 32 panel PU shell — precise flight and consistent touch.',
+      'status': 'Borrowed',
+    },
+    {
+      'imageFile': null,
+      'imageUrl':
+          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcpvSD8HmYBtoa_-hfQm9U2R-5EugTuMlypQ&s',
+      'name': '04 : Volleyball',
+      'description':
+          'Size 5, 260–280 g weight, microfiber PU cover — soft touch and stable trajectory for indoor play.',
+      'status': 'Disabled',
+    },
+  ];
+
+  // Bottom Navigation Bar
   Widget _buildBottomNavBar() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      color: _scaffoldBgColor,
+      color: Colors.black,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -75,14 +117,14 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 39, 39, 39),
+      backgroundColor: _scaffoldBgColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
             child: Column(
               children: [
-                // 🔹 Header
+                // Header + Add Button
                 Row(
                   children: [
                     const Text(
@@ -98,15 +140,12 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                             builder: (context) => const AddAssetPage(),
                           ),
                         );
-                        // if (newAsset != null) {
-                        //   // เพิ่ม asset ใหม่ลงใน list ของคุณ
-                        //   // ตอนนี้คุณยังใช้ static list อยู่ ให้ลองเก็บใน state
-                        //   setState(() {
-                        //     // สมมติว่าคุณมี list assets จริง ๆ
-                        //     // _assets.add(newAsset);
-                        //     // สำหรับตัวอย่างนี้ เราอาจต้องเปลี่ยน _buildAssetCard ให้ใช้ list
-                        //   });
-                        // }
+
+                        if (newAsset != null) {
+                          setState(() {
+                            _assets.add(newAsset);
+                          });
+                        }
                       },
                       label: const Text('Add'),
                       icon: const Icon(Icons.create_new_folder_sharp),
@@ -115,51 +154,15 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                 ),
                 const SizedBox(height: 20),
 
-                // 🔹 Tennis
-                _buildAssetCard(
-                  imageUrl:
-                      'https://static.vecteezy.com/system/resources/previews/001/844/211/non_2x/tennis-racket-design-illustration-isolated-on-white-background-free-vector.jpg',
-                  name: '01 : Tennis Model AVC-23',
-                  description:
-                      '24 lbs tension, light head, stiff shaft — fast and precise handling.',
-                  status: 'Available',
-                  statusColor: const Color(0xFFD8FFA3),
-                ),
-                const SizedBox(height: 20),
-
-                // 🔹 Basketball
-                _buildAssetCard(
-                  imageUrl:
-                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGZNbQ9wHn8pyRwabz1tBIfpEJdaQfi0DPLw&s',
-                  name: '02 : Basketball',
-                  description:
-                      'Size 7, 600 g weight, composite leather grip — stable bounce and strong durability indoor/outdoor.',
-                  status: 'Disabled',
-                  statusColor: const Color.fromARGB(255, 185, 185, 185),
-                ),
-                const SizedBox(height: 20),
-
-                // 🔹 Football
-                _buildAssetCard(
-                  imageUrl:
-                      'https://img.freepik.com/free-vector/soccer-ball-realistic-white-black-picture_1284-8506.jpg?semt=ais_hybrid&w=740&q=80',
-                  name: '03 : Football',
-                  description:
-                      'Size 5, 0.8 bar pressure, 32 panel PU shell — precise flight and consistent touch.',
-                  status: 'Borrowed',
-                  statusColor: const Color.fromARGB(255, 129, 230, 255),
-                ),
-                const SizedBox(height: 20),
-
-                // 🔹 Volleyball
-                _buildAssetCard(
-                  imageUrl:
-                      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcpvSD8HmYBtoa_-hfQm9U2R-5EugTuMlypQ&s',
-                  name: '04 : Volleyball',
-                  description:
-                      'Size 5, 260–280 g weight, microfiber PU cover — soft touch and stable trajectory for indoor play.',
-                  status: 'Disabled',
-                  statusColor: const Color.fromARGB(255, 185, 185, 185),
+                // แสดงรายการ asset
+                Column(
+                  children: List.generate(_assets.length, (index) {
+                    final asset = _assets[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: _buildAssetCard(asset: asset, index: index),
+                    );
+                  }),
                 ),
               ],
             ),
@@ -170,13 +173,9 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
     );
   }
 
-  // 🔹 ฟังก์ชันสร้างการ์ด (ลดโค้ดซ้ำ)
   Widget _buildAssetCard({
-    required String imageUrl,
-    required String name,
-    required String description,
-    required String status,
-    required Color statusColor,
+    required Map<String, dynamic> asset,
+    required int index,
   }) {
     return Container(
       width: double.infinity,
@@ -188,45 +187,47 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // รูป
+          // รูปภาพ
           Container(
             width: 100,
             height: 100,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              image: DecorationImage(
-                image: NetworkImage(imageUrl),
-                fit: BoxFit.cover,
-              ),
+              image: asset['imageFile'] != null
+                  ? DecorationImage(
+                      image: FileImage(asset['imageFile']),
+                      fit: BoxFit.cover,
+                    )
+                  : asset['imageUrl'] != null
+                  ? DecorationImage(
+                      image: NetworkImage(asset['imageUrl']),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
+            child: asset['imageFile'] == null && asset['imageUrl'] == null
+                ? const Icon(Icons.image_not_supported, color: Colors.white70)
+                : null,
           ),
           const SizedBox(width: 16),
-
           // รายละเอียด
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  asset['name'],
                   style: const TextStyle(
                     color: Color(0xFFD8FFA3),
                     fontSize: 18,
-                    fontFamily: 'IBM Plex Sans Thai',
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
-                  description,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontFamily: 'IBM Plex Sans Thai',
-                  ),
+                  asset['description'],
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
                 const SizedBox(height: 12),
-
-                // ปุ่ม
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -236,11 +237,15 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: statusColor,
+                        color: asset['status'] == 'Available'
+                            ? const Color(0xFFD8FFA3)
+                            : asset['status'] == 'Disabled'
+                            ? Colors.grey
+                            : const Color.fromARGB(255, 111, 214, 255),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        status,
+                        asset['status'],
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 14,
@@ -248,8 +253,6 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                       ),
                     ),
                     const SizedBox(width: 8),
-
-                    // ปุ่ม Edit
                     FilledButton(
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFFFFF69E),
@@ -261,18 +264,37 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      onPressed: () {
-                        Navigator.push(
+                      onPressed: () async {
+                        final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => EditAssetPage(
-                              assetName: name,
-                              description: description,
-                              status: status,
-                              imageUrl: imageUrl,
+                              assetName: asset['name'],
+                              description: asset['description'],
+                              status: asset['status'],
+                              imageUrl: asset['imageFile'] ?? asset['imageUrl'],
+                              index: index,
                             ),
                           ),
                         );
+
+                        if (result != null) {
+                          if (result['action'] == 'delete') {
+                            setState(() {
+                              _assets.removeAt(result['index']);
+                            });
+                          } else if (result['action'] == 'update') {
+                            setState(() {
+                              _assets[result['index']]['name'] = result['name'];
+                              _assets[result['index']]['description'] =
+                                  result['description'];
+                              _assets[result['index']]['status'] =
+                                  result['status'];
+                              _assets[result['index']]['imageFile'] =
+                                  result['imageFile'];
+                            });
+                          }
+                        }
                       },
                       child: const Text(
                         'Edit',
