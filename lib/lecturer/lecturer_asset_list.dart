@@ -1,182 +1,144 @@
 import 'dart:convert';
 
-import '../auth_storage.dart';
-import '../config.dart';
-import '../login.dart';
-import 'lecturer_history.dart';
-import 'lecturer_home_page.dart';
-import 'lecturer_requested_item.dart';
-import 'widgets/lecturer_nav_bar.dart';
-import 'widgets/lecturer_logout.dart';
+import 'package:asset_bor/auth_storage.dart';
+import 'package:asset_bor/config.dart';
+import 'package:asset_bor/lecturer/lecturer_history.dart';
+import 'package:asset_bor/lecturer/lecturer_home_page.dart';
+import 'package:asset_bor/lecturer/lecturer_requested_item.dart';
+import 'package:asset_bor/shared/logout.dart';
+import 'package:asset_bor/lecturer/widgets/lecturer_nav_bar.dart';
+import 'package:asset_bor/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class AssetItem {
-  final int id;
-  final String name;
-  final String status;
-  final String image;
-  AssetItem({
-    required this.id,
-    required this.name,
-    required this.status,
-    required this.image,
-  });
-  factory AssetItem.fromJson(Map<String, dynamic> j) => AssetItem(
-    id: j['asset_id'] as int,
-    name: j['asset_name'] as String,
-    status: j['asset_status'] as String,
-    image: (j['image'] as String?) ?? '',
-  );
-}
-
 class LecturerAssetList extends StatefulWidget {
   const LecturerAssetList({super.key});
+
   @override
   State<LecturerAssetList> createState() => _LecturerAssetListState();
 }
 
 class _LecturerAssetListState extends State<LecturerAssetList> {
-  int index = 1; 
-
-  Future<List<AssetItem>> _fetchAssets() async {
-    final userId = await AuthStorage.getUserId();
-    if (userId == null) {
-      await AuthStorage.clearUserId();
-      if (!mounted) return const [];
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
-      );
-      return const [];
-    }
-
-    final url = Uri.parse('${AppConfig.baseUrl}/lecturers/assets');
-    final resp = await http.get(url);
-    if (resp.statusCode != 200) {
-      throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
-    }
-
-    final List<dynamic> data = jsonDecode(resp.body) as List<dynamic>;
-    return data
-        .map((item) => AssetItem.fromJson(item as Map<String, dynamic>))
-        .toList();
-  }
+  List<Map<String, dynamic>> items = [];
+  bool isLoading = true;
+  String? errorMsg;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1F1F1F),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1F1F1F),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          'Assets',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+  void initState() {
+    super.initState();
+    loadAssets();
+  }
+
+
+  Future<void> loadAssets() async {
+    setState(() {
+      isLoading = true;
+      errorMsg = null;
+    });
+
+    try {
+      final response = await http.get(Uri.parse('${AppConfig.baseUrl}/lecturers/assets'));
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+      final data = List<Map<String, dynamic>>.from(jsonDecode(response.body) as List);
+      if (!mounted) return;
+      setState(() {
+        items = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        errorMsg = '$e';
+        isLoading = false;
+      });
+    }
+  }
+
+  Widget BodyBuilder() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFD4FF00)));
+    }
+
+    if (errorMsg != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Error: $errorMsg', style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: loadAssets,
+              child: const Text('Try again'),
+            ),
+          ],
         ),
-        actions: const [
-          LecturerLogoutButton(iconColor: Colors.white),
-        ],
-      ),
-      body: SafeArea(child: AssetListView(fetch: _fetchAssets)),
-      bottomNavigationBar: LecturerNavBar(
-        index: index,
-        onTap: (i) {
-          setState(() => index = i);
-          if (i == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LecturerHomePage()),
-            );
-          } else if (i == 1) {
-            // current page
-            return;
-          } else if (i == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LecturerRequestedItem()),
-            );
-          } else if (i == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const LecturerHistory(),
-              ),
+      );
+    }
+
+    if (items.isEmpty) {
+      return const Center(
+        child: Text('No assets', style: TextStyle(color: Colors.white70)),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: loadAssets,
+      backgroundColor: const Color(0xFF1F1F1F),
+      color: const Color(0xFFD4FF00),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 108),
+        itemCount: items.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(height: 20),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return const Text(
+              'Asset List',
+              style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
             );
           }
+          final item = items[index - 1];
+          return buildAssetCard(index, item);
         },
       ),
     );
   }
-}
-class AssetListView extends StatelessWidget {
-  const AssetListView({super.key, required this.fetch});
-  final Future<List<AssetItem>> Function() fetch;
 
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<AssetItem>>(
-      future: fetch(),
-      builder: (context, s) {
-        if (s.connectionState != ConnectionState.done) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
-          );
-        }
-        if (s.hasError) {
-          return Center(
-            child: Text(
-              'Error: ${s.error}',
-              style: const TextStyle(color: Colors.white),
-            ),
-          );
-        }
-        final items = s.data!;
-        if (items.isEmpty) {
-          return const Center(
-            child: Text('No assets', style: TextStyle(color: Colors.white70)),
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24 + 84),
-          itemCount: items.length + 1,
-          separatorBuilder: (_, __) => const SizedBox(height: 20),
-          itemBuilder: (context, i) {
-            if (i == 0) {
-              return const Text(
-                'Asset List',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              );
-            }
-            final a = items[i - 1];
-            return AssetCard(index: i, item: a);
-          },
-        );
-      },
-    );
-  }
-}
+  Widget buildAssetCard(int index, Map<String, dynamic> item) {
+    final imagePath = ((item['image'] as String?) ?? '').trim();
+    final status = ((item['asset_status'] as String?) ?? '').trim();
+    final name = ((item['asset_name'] as String?) ?? '').trim();
 
-class AssetCard extends StatelessWidget {
-  const AssetCard({super.key, required this.index, required this.item});
-  final int index; 
-  final AssetItem item;
+    Color bg;
+    Color fg;
+    String chip;
+    switch (status) {
+      case 'Available':
+        bg = const Color(0xFFDFFFAE);
+        fg = Colors.black;
+        chip = 'Available';
+        break;
+      case 'Borrowed':
+        bg = const Color(0xFFAEE4FF);
+        fg = Colors.black;
+        chip = 'Borrowed';
+        break;
+      case 'Disable':
+        bg = const Color(0xFF9E9E9E);
+        fg = Colors.black;
+        chip = 'Disabled';
+        break;
+      default:
+        bg = const Color(0xFFBDBDBD);
+        fg = Colors.black;
+        chip = status.isEmpty ? '-' : status;
+    }
 
-  static const Color _card = Color(0xFF3A3A3C);
-  static const Color _imgBg = Color(0xFF2C2C2E);
-  static const Color _title = Color(0xFFD4FF00); 
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _card,
+        color: const Color(0xFF3A3A3C),
         borderRadius: BorderRadius.circular(28),
       ),
       child: Row(
@@ -187,25 +149,27 @@ class AssetCard extends StatelessWidget {
             child: Container(
               width: 130,
               height: 130,
-              color: _imgBg,
-              child: item.image.isNotEmpty
-                  ? Image.asset(
-                      'assets/images/${item.image}',
-                      fit: BoxFit.cover,
-                    )
-                  : const Icon(Icons.image, color: Colors.white24, size: 36),
+              color: const Color(0xFF2C2C2E),
+              child: (() {
+                if (imagePath.isEmpty) {
+                  return const Icon(Icons.image, color: Colors.white24, size: 36);
+                }
+                if (imagePath.startsWith('http')) {
+                  return Image.network(imagePath, fit: BoxFit.cover);
+                }
+                return Image.asset('assets/images/$imagePath', fit: BoxFit.cover);
+              }()),
             ),
           ),
-
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${index.toString().padLeft(2, '0')} ${item.name}',
+                  '${index.toString().padLeft(2, '0')} ${name.isEmpty ? '-' : name}',
                   style: const TextStyle(
-                    color: _title,
+                    color: Color(0xFFD4FF00),
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
@@ -222,7 +186,17 @@ class AssetCard extends StatelessWidget {
                 const SizedBox(height: 50),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: _statusChip(item.status),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: bg,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      chip,
+                      style: TextStyle(color: fg, fontWeight: FontWeight.w600),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -232,41 +206,44 @@ class AssetCard extends StatelessWidget {
     );
   }
 
-  Widget _statusChip(String status) {
-    late Color bg;
-    late Color fg;
-    late String label;
-    switch (status) {
-      case 'Available':
-        bg = const Color(0xFFDFFFAE);
-        fg = Colors.black;
-        label = 'Available';
-        break;
-      case 'Borrowed':
-        bg = const Color(0xFFAEE4FF);
-        fg = Colors.black;
-        label = 'Borrowed';
-        break;
-      case 'Disable':
-        bg = const Color(0xFF9E9E9E);
-        fg = Colors.black;
-        label = 'Disabled';
-        break;
-      default:
-        bg = const Color(0xFFBDBDBD);
-        fg = Colors.black;
-        label = status;
+  void handleNavTap(int index) {
+    if (index == 1) return;
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LecturerHomePage()),
+      );
+    } else if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LecturerRequestedItem()),
+      );
+    } else if (index == 3) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LecturerHistory()),
+      );
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1F1F1F),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1F1F1F),
+        automaticallyImplyLeading: false,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Assets',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        actions: const [
+          LogoutButton(iconColor: Colors.white),
+        ],
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: fg, fontWeight: FontWeight.w600),
-      ),
+      body: SafeArea(child: BodyBuilder()),
+      bottomNavigationBar: LecturerNavBar(index: 1, onTap: handleNavTap),
     );
   }
 }

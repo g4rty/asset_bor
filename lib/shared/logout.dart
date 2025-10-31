@@ -4,8 +4,8 @@ import '../../auth_storage.dart';
 import '../../login.dart';
 
 /// Icon button that logs the lecturer out after confirmation.
-class LecturerLogoutButton extends StatefulWidget {
-  const LecturerLogoutButton({
+class LogoutButton extends StatefulWidget {
+  const LogoutButton({
     super.key,
     this.iconColor = Colors.white,
   });
@@ -13,27 +13,27 @@ class LecturerLogoutButton extends StatefulWidget {
   final Color iconColor;
 
   @override
-  State<LecturerLogoutButton> createState() => _LecturerLogoutButtonState();
+  State<LogoutButton> createState() => LogoutButtonState();
 }
 
-class _LecturerLogoutButtonState extends State<LecturerLogoutButton> {
-  bool _busy = false;
+class LogoutButtonState extends State<LogoutButton> {
+  bool busy = false;
 
-  Future<void> _confirmAndLogout() async {
+  Future<void> confirmAndLogout() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => _LogoutDialog(
+      builder: (context) => LogoutDialog(
         onConfirm: () => Navigator.of(context).pop(true),
         onCancel: () => Navigator.of(context).pop(false),
       ),
     );
     if (ok != true) return;
-    await _logout();
+    await logout();
   }
 
-  Future<void> _logout() async {
-    if (_busy) return;
-    setState(() => _busy = true);
+  Future<void> logout() async {
+    if (busy) return;
+    setState(() => busy = true);
     try {
       await AuthStorage.clearUserId();
       if (!mounted) return;
@@ -43,7 +43,7 @@ class _LecturerLogoutButtonState extends State<LecturerLogoutButton> {
       );
     } finally {
       if (mounted) {
-        setState(() => _busy = false);
+        setState(() => busy = false);
       }
     }
   }
@@ -52,8 +52,8 @@ class _LecturerLogoutButtonState extends State<LecturerLogoutButton> {
   Widget build(BuildContext context) {
     return IconButton(
       tooltip: 'Logout',
-      onPressed: _busy ? null : _confirmAndLogout,
-      icon: _busy
+      onPressed: busy ? null : confirmAndLogout,
+      icon: busy
           ? const SizedBox(
               width: 22,
               height: 22,
@@ -64,8 +64,8 @@ class _LecturerLogoutButtonState extends State<LecturerLogoutButton> {
   }
 }
 
-class _LogoutDialog extends StatelessWidget {
-  const _LogoutDialog({required this.onConfirm, required this.onCancel});
+class LogoutDialog extends StatelessWidget {
+  const LogoutDialog({required this.onConfirm, required this.onCancel});
 
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
