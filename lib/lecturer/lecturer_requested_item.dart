@@ -6,7 +6,7 @@ import 'package:asset_bor/lecturer/lecturer_asset_list.dart';
 import 'package:asset_bor/lecturer/lecturer_history.dart';
 import 'package:asset_bor/lecturer/lecturer_home_page.dart';
 import 'package:asset_bor/shared/logout.dart';
-import 'package:asset_bor/lecturer/widgets/lecturer_nav_bar.dart';
+import 'package:asset_bor/shared/navbar.dart';
 import 'package:asset_bor/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -655,7 +655,7 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
         actions: const [LogoutButton(iconColor: Colors.white)],
       ),
       body: SafeArea(child: bodyBuilder()),
-      bottomNavigationBar: LecturerNavBar(index: 2, onTap: handleNavTap),
+      bottomNavigationBar: NavBar(index: 2, onTap: handleNavTap),
     );
   }
 }

@@ -6,7 +6,7 @@ import 'package:asset_bor/lecturer/lecturer_asset_list.dart';
 import 'package:asset_bor/lecturer/lecturer_history.dart';
 import 'package:asset_bor/lecturer/lecturer_requested_item.dart';
 import 'package:asset_bor/shared/logout.dart';
-import 'package:asset_bor/lecturer/widgets/lecturer_nav_bar.dart';
+import 'package:asset_bor/shared/navbar.dart';
 import 'package:asset_bor/login.dart';
 import 'package:asset_bor/shared/dashboard.dart';
 import 'package:flutter/material.dart';
@@ -126,7 +126,7 @@ class _LecturerHomePageState extends State<LecturerHomePage> {
           pending: readCount('pending_requests'),
         ),
       ),
-      bottomNavigationBar: LecturerNavBar(index: 0, onTap: handleNavTap),
+      bottomNavigationBar: NavBar(index: 0, onTap: handleNavTap),
     );
   }
 }

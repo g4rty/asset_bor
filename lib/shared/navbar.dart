@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class LecturerNavBar extends StatelessWidget {
-  const LecturerNavBar({super.key, required this.index, required this.onTap});
+class NavBar extends StatelessWidget {
+  const NavBar({super.key, required this.index, required this.onTap});
 
   final int index;
   final ValueChanged<int> onTap;
