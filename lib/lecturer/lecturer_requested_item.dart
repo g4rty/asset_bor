@@ -473,7 +473,8 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
                           style: TextStyle(color: Colors.white70, fontSize: 15),
                         ),
                         TextSpan(
-                          text: '${formatDate(borrowDate)} - ${formatDate(returnDate)}',
+                          text:
+                              '${formatDate(borrowDate)} - ${formatDate(returnDate)}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -619,6 +620,26 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
     );
   }
 
+  void handleNavTap(int index) {
+    if (index == 2) return;
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LecturerHomePage()),
+      );
+    } else if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LecturerAssetList()),
+      );
+    } else if (index == 3) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LecturerHistory()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -634,29 +655,7 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
         actions: const [LecturerLogoutButton(iconColor: Colors.white)],
       ),
       body: SafeArea(child: bodyBuilder()),
-      bottomNavigationBar: LecturerNavBar(
-        index: 2,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LecturerHomePage()),
-            );
-          } else if (index == 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const LecturerAssetList(),
-              ),
-            );
-          } else if (index == 3) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LecturerHistory()),
-            );
-          }
-        },
-      ),
+      bottomNavigationBar: LecturerNavBar(index: 2, onTap: handleNavTap),
     );
   }
 }
