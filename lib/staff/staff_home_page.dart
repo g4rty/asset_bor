@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:asset_bor/config.dart';
-import 'package:asset_bor/shared/dashboard_body.dart';
+import 'package:asset_bor/shared/dashboard.dart';
 import 'package:asset_bor/staff/staff_assets_list.dart';
 import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:asset_bor/staff/staff_history_page.dart';

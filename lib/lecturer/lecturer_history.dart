@@ -7,7 +7,7 @@ import 'lecturer_asset_list.dart';
 import 'lecturer_home_page.dart';
 import 'lecturer_requested_item.dart';
 import 'widgets/lecturer_nav_bar.dart';
-import 'widgets/lecturer_logout.dart';
+import '../shared/logout.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -58,10 +58,11 @@ class LecturerHistoryState extends State<LecturerHistory> {
     await next;
   }
 
-  String formatDate(String? value) {
+  String formatDateWithTime(String? value) {
     if (value == null || value.isEmpty) return '-';
     final date = DateTime.tryParse(value);
     if (date == null) return '-';
+    final local = date.toLocal();
     const months = [
       '',
       'Jan',
@@ -77,9 +78,37 @@ class LecturerHistoryState extends State<LecturerHistory> {
       'Nov',
       'Dec',
     ];
-    final day = date.day.toString().padLeft(2, '0');
-    final month = months[date.month];
-    final year = (date.year % 100).toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final month = months[local.month];
+    final year = (local.year % 100).toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$day $month $year • $hour:$minute';
+  }
+
+  String formatDate(String? value) {
+    if (value == null || value.isEmpty) return '-';
+    final date = DateTime.tryParse(value);
+    if (date == null) return '-';
+    final local = date.toLocal();
+    const months = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final day = local.day.toString().padLeft(2, '0');
+    final month = months[local.month];
+    final year = (local.year % 100).toString().padLeft(2, '0');
     return '$day $month $year';
   }
 
@@ -94,19 +123,19 @@ class LecturerHistoryState extends State<LecturerHistory> {
     String? approvedDate = (item['approval_date'] as String?);
     String? rejectionReason = (item['rejection_reason'] as String?);
     String? requestStatus = item['decision_status'] as String?;
-    final bannerStatus = '';
     Color bg;
     Color fg;
     String statusMsg;
 
-    if (requestStatus == 'rejected' && rejectionReason != null) {
+    if (requestStatus == 'approved' || requestStatus == 'timeout') {
+      bg = const Color(0xFFD9FFA3);
+      fg = const Color(0xFF396001);
+      statusMsg = 'Approved';
+    } else {
       bg = const Color(0xFFED7575);
       fg = Colors.white;
-      statusMsg = 'Rejected: $rejectionReason';
-    } else {
-      bg = Color(0xFFD9FFA3);
-      fg = Color(0xFF396001);
-      statusMsg = 'Approved';
+      statusMsg =
+          rejectionReason == null || rejectionReason.isEmpty ? 'Rejected' : 'Rejected: $rejectionReason';
     }
 
     Widget imageBox;
@@ -158,22 +187,26 @@ class LecturerHistoryState extends State<LecturerHistory> {
                 ),
                 // const SizedBox(height: 6),
                 Text(
-                  'Borrower : ${item['borrower_name']}',
+                  'Reviewd on: ${approvedDate== null || approvedDate.isEmpty ? '-' : formatDateWithTime(approvedDate)}',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                Text(
+                  'Borrower: ${item['borrower_name']}',
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                 ),
                 // const SizedBox(height: 4),
                 Text(
-                  'Borrow period : $borrowPeriod',
+                  'Date: $borrowPeriod',
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                 ),
                 // const SizedBox(height: 4),
                 Text(
-                  'Actual return : $actualReturn',
+                  'Actual return: $actualReturn',
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                 ),
                 // const SizedBox(height: 4),
                 Text(
-                  'Loan out by : ${loanOutBy == null || loanOutBy.isEmpty ? '-' : loanOutBy}',
+                  'Loan out by: ${loanOutBy == null || loanOutBy.isEmpty ? '-' : loanOutBy}',
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
@@ -243,7 +276,7 @@ class LecturerHistoryState extends State<LecturerHistory> {
           'Assets',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
-        actions: const [LecturerLogoutButton(iconColor: Colors.white)],
+        actions: const [LogoutButton(iconColor: Colors.white)],
       ),
       body: SafeArea(
         child: RefreshIndicator(
