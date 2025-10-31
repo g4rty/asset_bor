@@ -6,7 +6,7 @@ import '../login.dart';
 import 'lecturer_asset_list.dart';
 import 'lecturer_home_page.dart';
 import 'lecturer_requested_item.dart';
-import 'widgets/lecturer_nav_bar.dart';
+import '../shared/navbar.dart';
 import '../shared/logout.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -348,7 +348,7 @@ class LecturerHistoryState extends State<LecturerHistory> {
           ),
         ),
       ),
-      bottomNavigationBar: LecturerNavBar(
+      bottomNavigationBar: NavBar(
         index: 3,
         onTap: handleNavTap
       ),

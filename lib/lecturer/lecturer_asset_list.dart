@@ -6,7 +6,7 @@ import 'package:asset_bor/lecturer/lecturer_history.dart';
 import 'package:asset_bor/lecturer/lecturer_home_page.dart';
 import 'package:asset_bor/lecturer/lecturer_requested_item.dart';
 import 'package:asset_bor/shared/logout.dart';
-import 'package:asset_bor/lecturer/widgets/lecturer_nav_bar.dart';
+import 'package:asset_bor/shared/navbar.dart';
 import 'package:asset_bor/login.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -243,7 +243,7 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
         ],
       ),
       body: SafeArea(child: BodyBuilder()),
-      bottomNavigationBar: LecturerNavBar(index: 1, onTap: handleNavTap),
+      bottomNavigationBar: NavBar(index: 1, onTap: handleNavTap),
     );
   }
 }
