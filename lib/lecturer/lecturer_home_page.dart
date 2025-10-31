@@ -8,6 +8,7 @@ import 'package:asset_bor/lecturer/lecturer_requested_item.dart';
 import 'package:asset_bor/lecturer/widgets/lecturer_logout.dart';
 import 'package:asset_bor/lecturer/widgets/lecturer_nav_bar.dart';
 import 'package:asset_bor/login.dart';
+import 'package:asset_bor/shared/dashboard_body.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -77,129 +78,6 @@ class _LecturerHomePageState extends State<LecturerHomePage> {
     return 0;
   }
 
-  Widget buildChartBar(String label, int value, Color color) {
-    final height = value.clamp(0, 30) * 6.0 + 12;
-    return Expanded(
-      child: Column(
-        children: [
-          Container(
-            height: height,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
-  Widget buildStatCard(String label, int value) {
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2B2B2E),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: [
-          Text(
-            '$value',
-            style: const TextStyle(
-              color: Color(0xFF42A45A),
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget BodyBuilder() {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFD4FF00)));
-    }
-
-    if (errorMsg != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Error: $errorMsg', style: const TextStyle(color: Colors.white)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: loadCounts,
-              child: const Text('Try again'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final available = readCount('available_units');
-    final borrowed = readCount('borrowed_units');
-    final disabled = readCount('disabled_units');
-    final pending = readCount('pending_requests');
-
-    return RefreshIndicator(
-      color: const Color(0xFFD4FF00),
-      backgroundColor: const Color(0xFF1F1F1F),
-      onRefresh: loadCounts,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          const Text(
-            'Dashboard',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              buildChartBar('Available', available, const Color(0xFFB9FF66)),
-              const SizedBox(width: 12),
-              buildChartBar('Borrowing', borrowed, const Color(0xFF7AD8FF)),
-              const SizedBox(width: 12),
-              buildChartBar('Disabled', disabled, const Color(0xFF6C6C70)),
-              const SizedBox(width: 12),
-              buildChartBar('Pending', pending, const Color(0xFFFFFF99)),
-            ],
-          ),
-          const SizedBox(height: 28),
-          Center(
-            child: Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                buildStatCard('Available', available),
-                buildStatCard('Pending', pending),
-                buildStatCard('Disabled', disabled),
-                buildStatCard('Borrowed', borrowed),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void handleNavTap(int index) {
     if (index == 0) return;
     if (index == 1) {
@@ -236,7 +114,18 @@ class _LecturerHomePageState extends State<LecturerHomePage> {
           LecturerLogoutButton(iconColor: Colors.white),
         ],
       ),
-      body: SafeArea(child: BodyBuilder()),
+      body: SafeArea(
+        child: buildDashboardBody(
+          isLoading: isLoading,
+          errorText: errorMsg,
+          onRefresh: loadCounts,
+          onRetry: loadCounts,
+          available: readCount('available_units'),
+          borrowed: readCount('borrowed_units'),
+          disabled: readCount('disabled_units'),
+          pending: readCount('pending_requests'),
+        ),
+      ),
       bottomNavigationBar: LecturerNavBar(index: 0, onTap: handleNavTap),
     );
   }
