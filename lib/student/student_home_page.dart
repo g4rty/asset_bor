@@ -18,7 +18,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
   bool _loggingOut = false;
 
   static const Color _scaffoldBgColor = Color(0xFF000000);
-  static const Color _darkCardColor = Color.fromARGB(255, 29, 29, 31);
+  static const Color _darkCardColor = Color(0xFF434343);
   static const Color _accentColor = Color(0xFFD4FF00);
   static const Color _lightTextColor = Color.fromARGB(255, 224, 224, 224);
 
@@ -30,7 +30,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
       case 1:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => StudentAssetsList()),
+          MaterialPageRoute(builder: (_) => const StudentAssetsList()),
         );
         break;
       case 2:
@@ -131,7 +131,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Dashboard',
+                        'Home Page',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 26,
@@ -161,6 +161,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
                     imagePath: 'assets/images/Tennis.png',
                     title: '01 : TENNIS RACKET',
                     subtitle: '24 lbs tension, light head, stiff shaft',
+                    isNew: true, //
                   ),
                   const SizedBox(height: 16),
                   _buildAssetCard(
@@ -187,41 +188,51 @@ class _StudentHomePageState extends State<StudentHomePage> {
           ),
         ],
       ),
-
       bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavbar),
     );
   }
 
+  // 🔹 แก้ให้ RuleCard เป็นแนวตั้ง (3 แถว)
   Widget _buildRulesSection() {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 12,
-      children: const [
-        SizedBox(
-          width: 130,
-          child: _RuleCard(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.rule, color: Colors.white, size: 22),
+              SizedBox(width: 8),
+              Text(
+                'Rule',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _RuleCard(
             number: '01',
             title: 'FIRST',
-            description: 'One asset per day\nStudents can borrow only',
+            description: 'One asset per day\nStudents can borrow only.',
           ),
-        ),
-        SizedBox(
-          width: 130,
-          child: _RuleCard(
+          const SizedBox(height: 12),
+          const _RuleCard(
             number: '02',
             title: 'AVAILABLE',
-            description: 'Only borrow items marked "Available"',
+            description: 'Only borrow items marked "Available".',
           ),
-        ),
-        SizedBox(
-          width: 130,
-          child: _RuleCard(
+          const SizedBox(height: 12),
+          const _RuleCard(
             number: '03',
             title: 'VALID',
             description: 'Borrowing must start today or later.',
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -229,62 +240,85 @@ class _StudentHomePageState extends State<StudentHomePage> {
     required String imagePath,
     required String title,
     required String subtitle,
+    bool isNew = false,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _darkCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 90,
-            height: 90,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              image: DecorationImage(
-                image: AssetImage(imagePath),
-                fit: BoxFit.cover,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (isNew)
+          const Padding(
+            padding: EdgeInsets.only(left: 8, bottom: 6),
+            child: Text(
+              'NEW',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 42, 42, 44),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 6,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  image: DecorationImage(
+                    image: AssetImage(imagePath),
+                    fit: BoxFit.cover,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: _lightTextColor, fontSize: 13),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: _lightTextColor,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.bottomRight,
+                      child: _buildAvailableChip(),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: _buildAvailableChip(),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -321,60 +355,63 @@ class _RuleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 190,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF2C2C2E),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color.fromARGB(255, 42, 42, 44), // เหมือน asset card
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withOpacity(0.4),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 40,
+            height: 40,
             decoration: const BoxDecoration(
               color: Color(0xFFE53935),
               shape: BoxShape.circle,
             ),
+            alignment: Alignment.center,
             child: Text(
               number,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 20,
+                fontSize: 16,
               ),
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF8E8E93),
-                  fontSize: 12,
-                  height: 1.4,
+                const SizedBox(height: 6),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    color: Color(0xFFB0B0B0),
+                    fontSize: 13,
+                    height: 1.3,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

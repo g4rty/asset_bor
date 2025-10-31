@@ -4,6 +4,9 @@ import 'student_home_page.dart';
 import 'student_request_form.dart';
 import 'package:asset_bor/student/history_screen.dart';
 
+import '../../auth_storage.dart';
+import '../../login.dart';
+
 class StudentAssetsList extends StatefulWidget {
   const StudentAssetsList({super.key});
 
@@ -36,13 +39,14 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     },
   ];
 
-  static const Color _scaffoldBgColor = Color(0xFF000000);
-  static const Color _darkCardColor = Color(0xFF424242);
+  static const Color _scaffoldBgColor = Color(0xFF1F1F1F);
+  static const Color _darkCardColor = Color(0xFF434343);
   static const Color _accentColor = Color(0xFFD4FF00);
   static const Color _lightTextColor = Color(0xFFD9D9D9);
 
   int _selectedIndex = 1;
   int? _tappedIndex;
+  bool _loggingOut = false;
 
   Color _getStatusColor(String status) {
     switch (status) {
@@ -87,6 +91,72 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     );
   }
 
+  Future<void> _confirmAndLogout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1F1F1F),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to log out?',
+          style: TextStyle(color: Color(0xFFB0B0B0), fontSize: 15, height: 1.4),
+        ),
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Color(0xFF424242)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            ),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 210, 245, 160),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+    await _logout();
+  }
+
+  Future<void> _logout() async {
+    if (_loggingOut) return;
+    setState(() => _loggingOut = true);
+    try {
+      await AuthStorage.clearUserId();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    } finally {
+      if (mounted) setState(() => _loggingOut = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,150 +173,175 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
             );
           },
         ),
-        title: const Text(
-          'Asset List',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Asset List',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            _loggingOut
+                ? const SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    icon: const Icon(
+                      Icons.logout,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                    onPressed: _confirmAndLogout,
+                  ),
+          ],
         ),
       ),
 
+      // ... ใน Widget build(BuildContext context) ...
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: assets.length,
         itemBuilder: (context, index) {
           final asset = assets[index];
+          // --- 1. สร้างตัวแปรเช็คสถานะ ---
+          final bool isAvailable = asset['status'] == 'Available';
+
           return GestureDetector(
-            onTapDown: (_) => setState(() => _tappedIndex = index),
-            onTapUp: (_) => setState(() => _tappedIndex = null),
-            onTapCancel: () => setState(() => _tappedIndex = null),
+            // --- 2. ใส่เงื่อนไขการ tap ที่นี่ ---
+            onTapDown: isAvailable
+                ? (_) => setState(() => _tappedIndex = index)
+                : null,
+            onTapUp: isAvailable
+                ? (_) => setState(() => _tappedIndex = null)
+                : null,
+            onTapCancel: isAvailable
+                ? () => setState(() => _tappedIndex = null)
+                : null,
+            onTap: isAvailable
+                ? () {
+                    // --- 3. ย้าย Logic การกดมาไว้ที่นี่ ---
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StudentRequestForm(asset: asset),
+                      ),
+                    );
+                  }
+                : null, // --- ถ้าไม่ Available ก็กดไม่ได้ ---
             child: AnimatedScale(
               scale: _tappedIndex == index ? 0.97 : 1.0,
               duration: const Duration(milliseconds: 150),
               curve: Curves.easeOut,
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 14),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _darkCardColor,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.4),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        image: asset['image'] != null
-                            ? DecorationImage(
-                                image: AssetImage(asset['image']),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
+              // --- 4. เพิ่ม Opacity เพื่อทำให้ Card จางลง ---
+              child: Opacity(
+                opacity: isAvailable ? 1.0 : 0.6, // จางลง 40%
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _darkCardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "${(index + 1).toString().padLeft(2, '0')} : ${asset['name']}",
-                            style: const TextStyle(
-                              color: _accentColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            "Description: ${asset['description']}",
-                            style: const TextStyle(
-                              color: _lightTextColor,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Align(
-                            alignment: Alignment.bottomRight,
-                            child: _buildAvailableChip(asset),
-                          ),
-                        ],
+                    ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        // ... (ส่วน Image เหมือนเดิม)
+                        width: 100,
+                        height: 100,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          image: asset['image'] != null
+                              ? DecorationImage(
+                                  image: AssetImage(asset['image']),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // ... (ส่วน Text Title และ Description เหมือนเดิม)
+                            Text(
+                              "${(index + 1).toString().padLeft(2, '0')} : ${asset['name']}",
+                              style: const TextStyle(
+                                color: _accentColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              "Description: ${asset['description']}",
+                              style: const TextStyle(
+                                color: _lightTextColor,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              // --- 5. เรียกใช้ function ใหม่ ---
+                              child: _buildAvailableChip(asset),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           );
         },
       ),
+      // ... (ส่วน BottomNavBar เหมือนเดิม)
+      bottomNavigationBar: NavBar(
+        index: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
 
-      bottomNavigationBar: _buildBottomNavBar(),
-    );
-  }
-
-  Widget _buildBottomNavBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      color: _scaffoldBgColor,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(icon: Icons.home, index: 0),
-          _buildNavItem(icon: Icons.shopping_bag_outlined, index: 1),
-          _buildNavItem(icon: Icons.list_alt_outlined, index: 2),
-          _buildNavItem(icon: Icons.history, index: 3),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem({required IconData icon, required int index}) {
-    final bool isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-
-        if (index == 0) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const StudentHomePage()),
-          );
-        } else if (index == 2) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => CancelStatusScreen()),
-          );
-        } else if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => HistoryScreen()),
-          );
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isSelected ? _accentColor : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.black : Colors.white,
-          size: 26,
-        ),
+          switch (index) {
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const StudentHomePage()),
+              );
+              break;
+            case 1:
+              // อยู่หน้าปัจจุบัน
+              break;
+            case 2:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => CancelStatusScreen()),
+              );
+              break;
+            case 3:
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => HistoryScreen()),
+              );
+              break;
+          }
+        },
       ),
     );
   }
