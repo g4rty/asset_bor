@@ -415,13 +415,21 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(
+                  'Request ${item['request_id']} • Asset ${item['asset_id']}',
+                  style: const TextStyle(
+                    color: Color(0xFFD4FF00),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: RichText(
                     text: TextSpan(
                       children: [
                         const TextSpan(
-                          text: 'Item : ',
+                          text: 'Item: ',
                           style: TextStyle(color: Colors.white70, fontSize: 15),
                         ),
                         TextSpan(
@@ -441,7 +449,7 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
                     text: TextSpan(
                       children: [
                         const TextSpan(
-                          text: 'Borrower : ',
+                          text: 'Borrower: ',
                           style: TextStyle(color: Colors.white70, fontSize: 15),
                         ),
                         TextSpan(
@@ -461,31 +469,11 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
                     text: TextSpan(
                       children: [
                         const TextSpan(
-                          text: 'Borrow date : ',
+                          text: 'Date: ',
                           style: TextStyle(color: Colors.white70, fontSize: 15),
                         ),
                         TextSpan(
-                          text: formatDate(borrowDate),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: RichText(
-                    text: TextSpan(
-                      children: [
-                        const TextSpan(
-                          text: 'Return date : ',
-                          style: TextStyle(color: Colors.white70, fontSize: 15),
-                        ),
-                        TextSpan(
-                          text: formatDate(returnDate),
+                          text: '${formatDate(borrowDate)} - ${formatDate(returnDate)}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -534,7 +522,7 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
                         child: const Text(
                           'Approve',
                           style: TextStyle(
-                            color: Colors.black,
+                            color: const Color(0xFF396001),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -572,7 +560,7 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
     );
   }
 
-  Widget BodyBuilder() {
+  Widget bodyBuilder() {
     if (isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
@@ -645,7 +633,7 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
         ),
         actions: const [LecturerLogoutButton(iconColor: Colors.white)],
       ),
-      body: SafeArea(child: BodyBuilder()),
+      body: SafeArea(child: bodyBuilder()),
       bottomNavigationBar: LecturerNavBar(
         index: 2,
         onTap: (index) {

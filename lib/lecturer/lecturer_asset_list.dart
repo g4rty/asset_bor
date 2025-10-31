@@ -26,20 +26,9 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
   @override
   void initState() {
     super.initState();
-    ensureUser();
     loadAssets();
   }
 
-  Future<void> ensureUser() async {
-    final userId = await AuthStorage.getUserId();
-    if (userId == null && mounted) {
-      await AuthStorage.clearUserId();
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-        (route) => false,
-      );
-    }
-  }
 
   Future<void> loadAssets() async {
     setState(() {

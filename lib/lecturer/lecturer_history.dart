@@ -167,94 +167,7 @@ class LecturerHistoryState extends State<LecturerHistory> {
                   }
 
                   final entry = items[index - 1];
-                  final borrowPeriod =
-                      '${formatDate(entry['borrow_date'] as String?)} - ${formatDate(entry['return_date'] as String?)}';
-                  final actualReturn = formatDate(entry['returned_date'] as String?);
-                  final loanOutBy = (entry['approver_name'] as String?)?.trim();
-                  final status = entry['effective_status'] as String? ?? '-';
-                  final assetImage = (entry['asset_image'] as String?)?.trim();
-
-                  Widget imageBox;
-                  if (assetImage == null || assetImage.isEmpty) {
-                    imageBox = const Icon(Icons.image, color: Colors.white24, size: 36);
-                  } else {
-                    imageBox = Image.asset(
-                      'assets/images/$assetImage',
-                      fit: BoxFit.cover,
-                    );
-                  }
-
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3A3A3C),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            width: 110,
-                            height: 110,
-                            color: const Color(0xFF2C2C2E),
-                            child: imageBox,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Request ${entry['request_id']} • Asset ${entry['asset_id']}',
-                                style: const TextStyle(
-                                  color: Color(0xFFD4FF00),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                entry['asset_name'] as String? ?? '-',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Borrower : ${entry['borrower_name']}',
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Borrow period : $borrowPeriod',
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Actual return : $actualReturn',
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Loan out by : ${loanOutBy == null || loanOutBy.isEmpty ? '-' : loanOutBy}',
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Status : $status',
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
+                  return buildHistoryCard(entry);
                 },
               );
             },
@@ -281,6 +194,124 @@ class LecturerHistoryState extends State<LecturerHistory> {
             );
           }
         },
+      ),
+    );
+  }
+
+  Widget buildHistoryCard(Map<String, dynamic> item) {
+    final borrowPeriod =
+        '${formatDate(item['borrow_date'] as String?)} - ${formatDate(item['return_date'] as String?)}';
+    final actualReturn = formatDate(item['returned_date'] as String?);
+    final loanOutBy = (item['approver_name'] as String?)?.trim();
+    final assetImage = (item['asset_image'] as String?)?.trim();
+    String? approvedDate = (item['approval_date'] as String?);
+    String? rejectionReason= (item['rejection_reason'] as String?);
+    String? requestStatus = item['decision_status'] as String?;
+    final bannerStatus = '';
+    Color bg;
+    Color fg;
+    String statusMsg;
+
+
+    if(requestStatus == 'rejected' && rejectionReason != null){
+      bg = const Color(0xFFED7575);
+      fg = Colors.white;
+      statusMsg = 'Rejected: $rejectionReason'; 
+    }else{
+      bg = Color(0xFFD9FFA3);
+      fg = Color(0xFF396001);
+      statusMsg = 'Approved';
+    }
+
+    Widget imageBox;
+    if (assetImage == null || assetImage.isEmpty) {
+      imageBox = const Icon(Icons.image, color: Colors.white24, size: 36);
+    } else {
+      imageBox = Image.asset(
+        'assets/images/$assetImage',
+        fit: BoxFit.cover,
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3A3A3C),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Container(
+              width: 110,
+              height: 110,
+              color: const Color(0xFF2C2C2E),
+              child: imageBox,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Request ${item['request_id']} • Asset ${item['asset_id']}',
+                  style: const TextStyle(
+                    color: Color(0xFFD4FF00),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                // const SizedBox(height: 6),
+                Text(
+                  item['asset_name'] as String? ?? '-',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                // const SizedBox(height: 6),
+                Text(
+                  'Borrower : ${item['borrower_name']}',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                // const SizedBox(height: 4),
+                Text(
+                  'Borrow period : $borrowPeriod',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                // const SizedBox(height: 4),
+                Text(
+                  'Actual return : $actualReturn',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                // const SizedBox(height: 4),
+                Text(
+                  'Loan out by : ${loanOutBy == null || loanOutBy.isEmpty ? '-' : loanOutBy}',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: bg,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      statusMsg,
+                      style: TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
