@@ -2,6 +2,8 @@ import 'package:asset_bor/staff/staff_assets_list.dart';
 import 'package:asset_bor/staff/staff_history_page.dart';
 import 'package:asset_bor/staff/staff_home_page.dart';
 import 'package:flutter/material.dart';
+import 'package:asset_bor/shared/logout.dart';
+import 'package:asset_bor/shared/navbar.dart';
 
 class StaffHandPage extends StatefulWidget {
   const StaffHandPage({super.key});
@@ -11,11 +13,30 @@ class StaffHandPage extends StatefulWidget {
 }
 
 class _StaffHandPageState extends State<StaffHandPage> {
-  int _selectedIndex = 2;
+  final int _selectedIndex = 2;
 
   // สีธีมตามที่ให้มา
   final Color _scaffoldBgColor = const Color.fromARGB(255, 39, 39, 39); // #272727
-  final Color _accentColor = const Color(0xFFD8FFA3); // สีเขียวอ่อนไฮไลต์ปุ่ม nav
+
+  void handleNavTap(int index) {
+    if (index == _selectedIndex) return;
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StaffHomePage()),
+      );
+    } else if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StaffAssetsList()),
+      );
+    } else if (index == 3) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +45,7 @@ class _StaffHandPageState extends State<StaffHandPage> {
       appBar: AppBar(
         backgroundColor: _scaffoldBgColor,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           "Hand out- Hand in",
           style: TextStyle(
@@ -33,6 +55,9 @@ class _StaffHandPageState extends State<StaffHandPage> {
           ),
         ),
         centerTitle: false,
+        actions: const [
+          LogoutButton(iconColor: Colors.white),
+        ],
       ),
 
       body: Padding(
@@ -80,75 +105,11 @@ class _StaffHandPageState extends State<StaffHandPage> {
       ),
 
       // ใช้ bottom nav bar แบบ custom จากโค้ดแรก
-      bottomNavigationBar: _buildBottomNavBar(),
+      bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavTap),
     );
   }
 
   // ===== Bottom Nav =====
-
-  Widget _buildBottomNavBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(icon: Icons.home, index: 0),
-          _buildNavItem(icon: Icons.shopping_bag_outlined, index: 1),
-          _buildNavItem(icon: Icons.list_alt_outlined, index: 2),
-          _buildNavItem(icon: Icons.history, index: 3),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem({required IconData icon, required int index}) {
-    final bool isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () async {
-        setState(() => _selectedIndex = index);
-
-        // ถ้าอยากให้กดแล้วไปหน้าอื่น ให้ uncomment ส่วนนี้แล้วใส่หน้าเอง
-        
-        if (index == 0) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StaffHomePage()),
-          );
-        } else if (index == 1) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StaffAssetsList()),
-          );
-        } else if (index == 3) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
-          );
-        }
-        
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isSelected ? _accentColor : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.black : Colors.white,
-          size: 26,
-        ),
-      ),
-    );
-  }
 }
 
 // ===== Card ยืมอุปกรณ์ =====
