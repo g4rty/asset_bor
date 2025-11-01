@@ -3,36 +3,19 @@ import 'student_assets_list.dart';
 import 'history_screen.dart';
 import 'package:flutter/material.dart';
 
+import '../../auth_storage.dart';
+import '../../login.dart';
+
 class CancelStatusScreen extends StatefulWidget {
+  const CancelStatusScreen({super.key});
+
   @override
   _CancelStatusScreenState createState() => _CancelStatusScreenState();
 }
 
 class _CancelStatusScreenState extends State<CancelStatusScreen> {
   int _selectedIndex = 2;
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => StudentHomePage()),
-      );
-    } else if (index == 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => StudentAssetsList()),
-      );
-    } else if (index == 3) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HistoryScreen()),
-      );
-    }
-  }
+  bool _loggingOut = false;
 
   void _showCancelDialog() {
     showDialog(
@@ -104,35 +87,153 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
     );
   }
 
+  void handleNavbar(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const StudentHomePage()),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const StudentAssetsList()),
+        );
+        break;
+      case 2:
+        // อยู่หน้าปัจจุบัน
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => HistoryScreen()),
+        );
+        break;
+    }
+  }
+
+  Future<void> _confirmAndLogout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1F1F1F),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to log out?',
+          style: TextStyle(color: Color(0xFFB0B0B0), fontSize: 15, height: 1.4),
+        ),
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Color(0xFF424242)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            ),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 210, 245, 160),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+    await _logout();
+  }
+
+  Future<void> _logout() async {
+    if (_loggingOut) return;
+    setState(() => _loggingOut = true);
+    try {
+      await AuthStorage.clearUserId();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    } finally {
+      if (mounted) setState(() => _loggingOut = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF1F1F1F),
       appBar: AppBar(
-        title: const Text(
-          'Checking Status',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        centerTitle: true,
-        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        backgroundColor: Color(0xFF1F1F1F),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => StudentHomePage()),
+              MaterialPageRoute(builder: (_) => const StudentHomePage()),
             );
           },
         ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Checking Status',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            _loggingOut
+                ? const SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    icon: const Icon(
+                      Icons.logout,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                    onPressed: _confirmAndLogout,
+                  ),
+          ],
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.only(top: 20, bottom: 20),
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Center(
           child: Container(
             width: MediaQuery.of(context).size.width * 0.9,
             decoration: BoxDecoration(
-              color: const Color(0xFF333333),
+              color: const Color(0xFF434343),
               borderRadius: BorderRadius.circular(30),
               boxShadow: const [
                 BoxShadow(
@@ -145,8 +246,32 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
+                // ✅ ปุ่ม Pending ด้านบน
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1E683),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Pending',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // ✅ รูปภาพ
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: Image.asset(
@@ -157,6 +282,8 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
+
+                // ✅ ข้อมูล
                 const Text(
                   '01 : Tennis',
                   style: TextStyle(
@@ -175,64 +302,29 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                   'Objective: Practice',
                   style: TextStyle(color: Colors.white70, fontSize: 18),
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Approved by:',
-                  style: TextStyle(color: Colors.white70, fontSize: 18),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Returned date:',
-                  style: TextStyle(color: Colors.white70, fontSize: 18),
-                ),
-                const SizedBox(height: 30),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 150,
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          backgroundColor: const Color.fromARGB(
-                            255,
-                            241,
-                            230,
-                            131,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          elevation: 8,
+                const SizedBox(height: 12),
+
+                // ✅ ปุ่ม Cancel ด้านล่าง
+                Center(
+                  child: SizedBox(
+                    width: 150,
+                    child: ElevatedButton(
+                      onPressed: _showCancelDialog,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        backgroundColor: const Color(0xFFF0A6A6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
                         ),
-                        child: const Text(
-                          'Pending',
-                          style: TextStyle(color: Colors.black, fontSize: 16),
-                        ),
+                        elevation: 8,
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.black, fontSize: 16),
                       ),
                     ),
-                    const SizedBox(width: 50),
-                    SizedBox(
-                      width: 150,
-                      child: ElevatedButton(
-                        onPressed: _showCancelDialog,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          backgroundColor: const Color(0xFFF0A6A6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          elevation: 8,
-                        ),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(color: Colors.black, fontSize: 16),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -240,39 +332,7 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
         ),
       ),
 
-      bottomNavigationBar: Container(
-        color: Colors.black,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(Icons.home, 0),
-            _buildNavItem(Icons.shopping_bag_outlined, 1),
-            _buildNavItem(Icons.list_alt_outlined, 2),
-            _buildNavItem(Icons.history, 3),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, int index) {
-    bool isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => _onItemTapped(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isSelected ? const Color(0xFFDBFF00) : Colors.transparent,
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.black : Colors.white,
-          size: 28,
-        ),
-      ),
+      bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavbar),
     );
   }
 }

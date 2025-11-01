@@ -2,6 +2,8 @@ import 'package:asset_bor/student/cancel_status_screen.dart';
 import 'package:flutter/material.dart';
 import 'student_home_page.dart';
 import 'student_assets_list.dart';
+import '../../auth_storage.dart';
+import '../../login.dart';
 
 class BorrowHistory {
   final String item;
@@ -26,6 +28,8 @@ class BorrowHistory {
 }
 
 class HistoryScreen extends StatefulWidget {
+  const HistoryScreen({super.key});
+
   @override
   _HistoryScreenState createState() => _HistoryScreenState();
 }
@@ -33,26 +37,33 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   int _selectedIndex = 3;
 
-  void _onItemTapped(int index) {
+  void handleNavbar(int index) {
     setState(() {
       _selectedIndex = index;
     });
 
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const StudentHomePage()),
-      );
-    } else if (index == 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const StudentAssetsList()),
-      );
-    } else if (index == 2) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => CancelStatusScreen()),
-      );
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const StudentHomePage()),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const StudentAssetsList()),
+        );
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CancelStatusScreen()),
+        );
+        break;
+      case 3:
+        // อยู่หน้าปัจจุบัน
+        break;
     }
   }
 
@@ -71,15 +82,79 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return '${dateParts[0]} ${dateParts[1]} ${dateParts[2]}';
   }
 
+  bool _loggingOut = false;
+
+  Future<void> _confirmAndLogout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1F1F1F),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to log out?',
+          style: TextStyle(color: Color(0xFFB0B0B0), fontSize: 15, height: 1.4),
+        ),
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Color(0xFF424242)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            ),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 210, 245, 160),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+    await _logout();
+  }
+
+  Future<void> _logout() async {
+    if (_loggingOut) return;
+    setState(() => _loggingOut = true);
+    try {
+      await AuthStorage.clearUserId();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    } finally {
+      if (mounted) setState(() => _loggingOut = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF000000),
+      backgroundColor: Color(0xFF1F1F1F),
       appBar: AppBar(
-        title: const Text(
-          'History',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
         backgroundColor: Colors.black,
         centerTitle: true,
         elevation: 0,
@@ -88,9 +163,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const StudentHomePage()),
+              MaterialPageRoute(builder: (_) => const StudentHomePage()),
             );
           },
+        ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'History',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            _loggingOut
+                ? const SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    icon: const Icon(
+                      Icons.logout,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                    onPressed: _confirmAndLogout,
+                  ),
+          ],
         ),
       ),
       body: ListView.builder(
@@ -100,58 +201,103 @@ class _HistoryScreenState extends State<HistoryScreen> {
           return _buildHistoryCard(item);
         },
       ),
-      bottomNavigationBar: Container(
-        color: Colors.black,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(Icons.home, 0),
-            _buildNavItem(Icons.shopping_bag_outlined, 1),
-            _buildNavItem(Icons.list_alt_outlined, 2),
-            _buildNavItem(Icons.history, 3),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, int index) {
-    bool isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => _onItemTapped(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isSelected ? const Color(0xFFDBFF00) : Colors.transparent,
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.black : Colors.white,
-          size: 28,
-        ),
-      ),
+      bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavbar),
     );
   }
 
   Widget _buildHistoryCard(BorrowHistory item) {
-    return Card(
+    final bool isRejected = item.status == 'Rejected';
+
+    // 🔸 กำหนดข้อความและสีตามสถานะ
+    final String statusText = isRejected
+        ? 'Rejected: Temporarily under repair'
+        : 'Approved';
+
+    final Color statusColor = isRejected
+        ? const Color(0xFFEF5350)
+        : const Color(0xFFD4FFAA);
+
+    final Color textColor = isRejected ? Colors.white : Colors.black;
+
+    return Container(
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-      color: const Color(0xFF424242),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(14.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildItemImage(item.imagePath),
-            const SizedBox(width: 16),
-            Expanded(child: _buildItemDetails(item)),
-          ],
-        ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF434343),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 🔸 รูปภาพ
+          Container(
+            width: 100,
+            height: 100,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+            child: Image.asset(item.imagePath, fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 16),
+
+          // 🔸 รายละเอียด
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Request ${item.borrowId} · Asset ${item.item}',
+                  style: const TextStyle(
+                    color: Color(0xFFD4FF00),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+
+                Text(
+                  'Date: ${item.borrowDate} – ${item.returnDate}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Objective: ${item.objective}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+
+                // 🔸 สถานะ
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -224,9 +370,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       borrowId: '01',
       approver: 'PupPub',
       borrowDate: '12 Aug 25',
-      returnDate: '12 Aug 25',
+      returnDate: '13 Aug 25',
       objective: 'Practice',
-      status: 'Rejected',
+      status: 'approved',
       imagePath: 'assets/images/Tennis.png',
     ),
     BorrowHistory(
@@ -236,7 +382,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       borrowDate: '12 Aug 25',
       returnDate: '13 Aug 25',
       objective: 'Practice',
-      status: 'Returned',
+      status: 'ejected',
       imagePath: 'assets/images/Basketball.png',
     ),
     BorrowHistory(
@@ -244,9 +390,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       borrowId: '03',
       approver: 'PupPubPub',
       borrowDate: '13 Aug 25',
-      returnDate: '13 Aug 25',
+      returnDate: '14 Aug 25',
       objective: 'Competition',
-      status: 'Returned',
+      status: 'approved',
       imagePath: 'assets/images/Football.png',
     ),
   ];

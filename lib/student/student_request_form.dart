@@ -11,8 +11,8 @@ class StudentRequestForm extends StatefulWidget {
 class _StudentRequestFormState extends State<StudentRequestForm> {
   final TextEditingController _objectiveController = TextEditingController();
 
-  static const Color _scaffoldBg = Color(0xFF000000);
-  static const Color _cardBg = Color(0xFF1C1C1E);
+  static const Color _scaffoldBg = Color(0xFF1F1F1F);
+  static const Color _cardBg = Color(0xFF434343);
   static const Color _confirmColor = Color(0xFFD4FFAA);
   static const Color _cancelColor = Color(0xFFFFB0B0);
 
@@ -78,135 +78,156 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Container(
-                  color: Colors.grey[700],
-                  child: InteractiveViewer(
-                    minScale: 1,
-                    maxScale: 3,
-                    child: asset['image'] != null
-                        ? Image.asset(asset['image'], fit: BoxFit.contain)
-                        : const Icon(
-                            Icons.image,
-                            size: 50,
-                            color: Colors.white54,
-                          ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Container(
+                    color: Colors.grey[700],
+                    child: InteractiveViewer(
+                      minScale: 1,
+                      maxScale: 3,
+                      child: asset['image'] != null
+                          ? Image.asset(asset['image'], fit: BoxFit.contain)
+                          : const Icon(
+                              Icons.image,
+                              size: 50,
+                              color: Colors.white54,
+                            ),
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[800],
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "01 ${asset['name']}",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "01 ${asset['name']}",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    "23 Aug 25 - 24 Aug 25",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(height: 6),
+                    const Text(
+                      "23 Aug 25 - 24 Aug 25",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    "Objective",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  const SizedBox(height: 6),
+                    const SizedBox(height: 14),
+                    const Text(
+                      "Objective",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                    const SizedBox(height: 6),
 
-                  TextField(
-                    controller: _objectiveController,
-                    maxLines: 3,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: "Enter your objective...",
-                      hintStyle: const TextStyle(color: Colors.white54),
-                      filled: true,
-                      fillColor: Colors.grey[700],
-                      border: OutlineInputBorder(
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[700],
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      contentPadding: const EdgeInsets.all(12),
+                      child: TextField(
+                        controller: _objectiveController,
+                        maxLines: 3,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: "Enter your objective...",
+                          hintStyle: const TextStyle(color: Colors.white54),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.all(12),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          backgroundColor: _confirmColor,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 12,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor: _confirmColor,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: () {
-                          if (_objectiveController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter an objective.'),
-                              ),
-                            );
-                          } else {
-                            _showConfirmDialog(context);
-                          }
-                        },
-                        child: const Text(
-                          'Confirm',
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ),
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          backgroundColor: _cancelColor,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                          onPressed: () {
+                            if (_objectiveController.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please enter an objective.'),
+                                ),
+                              );
+                            } else {
+                              _showConfirmDialog(context);
+                            }
+                          },
+                          child: const Text(
+                            'Confirm',
+                            style: TextStyle(color: Colors.black),
                           ),
                         ),
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(color: Colors.black),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor: _cancelColor,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(color: Colors.black),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
