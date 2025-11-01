@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:asset_bor/student/cancel_status_screen.dart';
 import 'package:flutter/material.dart';
 import 'student_home_page.dart';
@@ -15,29 +19,8 @@ class StudentAssetsList extends StatefulWidget {
 }
 
 class _StudentAssetsListState extends State<StudentAssetsList> {
-  final List<Map<String, dynamic>> assets = [
-    {
-      'name': 'Tennis',
-      'description':
-          '24 lbs string tension, lightweight carbon frame — balanced for power and control.',
-      'status': 'Available',
-      'image': 'assets/images/Tennis.png',
-    },
-    {
-      'name': 'Basketball',
-      'description':
-          '600 g weight, composite leather cover — superior grip for indoor and outdoor play.',
-      'status': 'Disabled',
-      'image': 'assets/images/Basketball.png',
-    },
-    {
-      'name': 'Football',
-      'description':
-          'Official size, microfiber surface — soft touch and excellent flight stability.',
-      'status': 'Borrowed',
-      'image': 'assets/images/Football.png',
-    },
-  ];
+  // 🔥 จากเดิมเป็น mock data ตอนนี้เราจะโหลดจริงจาก backend
+  final List<Map<String, dynamic>> assets = [];
 
   static const Color _scaffoldBgColor = Color(0xFF1F1F1F);
   static const Color _darkCardColor = Color(0xFF434343);
@@ -47,6 +30,48 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
   int _selectedIndex = 1;
   int? _tappedIndex;
   bool _loggingOut = false;
+  bool _isLoading = true;
+
+  Future<void> _fetchAssets() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.0.74:3000/api/assets'),
+      );
+
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        setState(() {
+          assets.clear();
+          assets.addAll(
+            data.map((e) {
+              return {
+                'id': e['asset_id'],
+                'name': e['asset_name'] ?? 'Unnamed',
+                'description': e['description'] ?? 'No description',
+                'status': e['asset_status'] ?? 'Unknown',
+                'image': e['image'] != null && e['image'].isNotEmpty
+                    ? 'assets/images/${e['image']}'
+                    : 'assets/images/placeholder.png',
+              };
+            }).toList(),
+          );
+          _isLoading = false;
+        });
+      } else {
+        print('❌ Failed to load assets: ${response.body}');
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      print('❌ Error fetching assets: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAssets();
+  }
 
   Color _getStatusColor(String status) {
     switch (status) {
@@ -54,6 +79,7 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
         return const Color(0xFFD4FFAA);
       case 'Borrowed':
         return const Color(0xFF6ED0FF);
+      case 'Disable':
       case 'Disabled':
         return const Color(0xFFB0B0B0);
       default:
@@ -201,116 +227,118 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
         ),
       ),
 
-      // ... ใน Widget build(BuildContext context) ...
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: assets.length,
-        itemBuilder: (context, index) {
-          final asset = assets[index];
-          // --- 1. สร้างตัวแปรเช็คสถานะ ---
-          final bool isAvailable = asset['status'] == 'Available';
+      //เพิ่มส่วนแสดงสถานะโหลดข้อมูล
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : assets.isEmpty
+          ? const Center(
+              child: Text(
+                'No assets found',
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: assets.length,
+              itemBuilder: (context, index) {
+                final asset = assets[index];
+                final bool isAvailable = asset['status'] == 'Available';
 
-          return GestureDetector(
-            // --- 2. ใส่เงื่อนไขการ tap ที่นี่ ---
-            onTapDown: isAvailable
-                ? (_) => setState(() => _tappedIndex = index)
-                : null,
-            onTapUp: isAvailable
-                ? (_) => setState(() => _tappedIndex = null)
-                : null,
-            onTapCancel: isAvailable
-                ? () => setState(() => _tappedIndex = null)
-                : null,
-            onTap: isAvailable
-                ? () {
-                    // --- 3. ย้าย Logic การกดมาไว้ที่นี่ ---
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => StudentRequestForm(asset: asset),
-                      ),
-                    );
-                  }
-                : null, // --- ถ้าไม่ Available ก็กดไม่ได้ ---
-            child: AnimatedScale(
-              scale: _tappedIndex == index ? 0.97 : 1.0,
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeOut,
-              // --- 4. เพิ่ม Opacity เพื่อทำให้ Card จางลง ---
-              child: Opacity(
-                opacity: isAvailable ? 1.0 : 0.6, // จางลง 40%
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 14),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: _darkCardColor,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.4),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        // ... (ส่วน Image เหมือนเดิม)
-                        width: 100,
-                        height: 100,
-                        clipBehavior: Clip.antiAlias,
+                return GestureDetector(
+                  onTapDown: isAvailable
+                      ? (_) => setState(() => _tappedIndex = index)
+                      : null,
+                  onTapUp: isAvailable
+                      ? (_) => setState(() => _tappedIndex = null)
+                      : null,
+                  onTapCancel: isAvailable
+                      ? () => setState(() => _tappedIndex = null)
+                      : null,
+                  onTap: isAvailable
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  StudentRequestForm(asset: asset),
+                            ),
+                          );
+                        }
+                      : null,
+                  child: AnimatedScale(
+                    scale: _tappedIndex == index ? 0.97 : 1.0,
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeOut,
+                    child: Opacity(
+                      opacity: isAvailable ? 1.0 : 0.6,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          image: asset['image'] != null
-                              ? DecorationImage(
-                                  image: AssetImage(asset['image']),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
+                          color: _darkCardColor,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.4),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
+                        child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // ... (ส่วน Text Title และ Description เหมือนเดิม)
-                            Text(
-                              "${(index + 1).toString().padLeft(2, '0')} : ${asset['name']}",
-                              style: const TextStyle(
-                                color: _accentColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                            Container(
+                              width: 100,
+                              height: 100,
+                              clipBehavior: Clip.antiAlias,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                image: asset['image'] != null
+                                    ? DecorationImage(
+                                        image: AssetImage(asset['image']),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              "Description: ${asset['description']}",
-                              style: const TextStyle(
-                                color: _lightTextColor,
-                                fontSize: 13,
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "${(index + 1).toString().padLeft(2, '0')} : ${asset['name']}",
+                                    style: const TextStyle(
+                                      color: _accentColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    "Description: ${asset['description']}",
+                                    style: const TextStyle(
+                                      color: _lightTextColor,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Align(
+                                    alignment: Alignment.bottomRight,
+                                    child: _buildAvailableChip(asset),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 14),
-                            Align(
-                              alignment: Alignment.bottomRight,
-                              // --- 5. เรียกใช้ function ใหม่ ---
-                              child: _buildAvailableChip(asset),
                             ),
                           ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
-          );
-        },
-      ),
-      // ... (ส่วน BottomNavBar เหมือนเดิม)
       bottomNavigationBar: NavBar(
         index: _selectedIndex,
         onTap: (index) {
@@ -326,7 +354,6 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
               );
               break;
             case 1:
-              // อยู่หน้าปัจจุบัน
               break;
             case 2:
               Navigator.push(

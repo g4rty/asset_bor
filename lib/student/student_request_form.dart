@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../../auth_storage.dart'; // ✅ ใช้เพื่อดึง user id ที่ login อยู่
 
 class StudentRequestForm extends StatefulWidget {
   final Map<String, dynamic> asset;
@@ -16,6 +20,72 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
   static const Color _confirmColor = Color(0xFFD4FFAA);
   static const Color _cancelColor = Color(0xFFFFB0B0);
 
+  bool _isSubmitting = false;
+
+  Future<void> _submitRequest() async {
+    final reason = _objectiveController.text.trim();
+    final assetId = widget.asset['id'] ?? widget.asset['asset_id'];
+    final borrowerId = await AuthStorage.getUserId(); //ดึง user_id จาก storage
+
+    if (reason.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter an objective.')),
+      );
+      return;
+    }
+
+    if (borrowerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not found, please log in again.')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final now = DateTime.now();
+      final borrowDate =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+      final returnDate =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${(now.day + 1).toString().padLeft(2, '0')}";
+
+      final response = await http.post(
+        Uri.parse('http://10.0.0.74:3000/api/borrow'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'asset_id': assetId,
+          'borrower_id': borrowerId,
+          'borrow_date': borrowDate,
+          'return_date': returnDate,
+          'reason': reason,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Borrow request submitted successfully!'),
+          ),
+        );
+      } else {
+        print('❌ Server Error: ${response.body}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit request: ${response.body}')),
+        );
+      }
+    } catch (e) {
+      print('❌ Error: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error submitting request: $e')));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  //ยืนยันก่อนส่ง
   void _showConfirmDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -38,10 +108,7 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
             ),
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Asset confirmed successfully!')),
-              );
+              _submitRequest(); //เรียกส่งคำขอยืมจริง
             },
             child: const Text('Confirm', style: TextStyle(color: Colors.black)),
           ),
@@ -94,7 +161,6 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
                   child: Container(
@@ -126,7 +192,7 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "01 ${asset['name']}",
+                      asset['name'] ?? 'Unknown Asset',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -135,7 +201,7 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      "23 Aug 25 - 24 Aug 25",
+                      "Borrow Date: Today — Return Tomorrow",
                       style: TextStyle(
                         color: Colors.white70,
                         fontWeight: FontWeight.bold,
@@ -164,11 +230,11 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                         controller: _objectiveController,
                         maxLines: 3,
                         style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           hintText: "Enter your objective...",
-                          hintStyle: const TextStyle(color: Colors.white54),
+                          hintStyle: TextStyle(color: Colors.white54),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(12),
+                          contentPadding: EdgeInsets.all(12),
                         ),
                       ),
                     ),
@@ -188,21 +254,34 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          onPressed: () {
-                            if (_objectiveController.text.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please enter an objective.'),
+                          onPressed: _isSubmitting
+                              ? null
+                              : () {
+                                  if (_objectiveController.text.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Please enter an objective.',
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    _showConfirmDialog(context);
+                                  }
+                                },
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.black,
+                                  ),
+                                )
+                              : const Text(
+                                  'Confirm',
+                                  style: TextStyle(color: Colors.black),
                                 ),
-                              );
-                            } else {
-                              _showConfirmDialog(context);
-                            }
-                          },
-                          child: const Text(
-                            'Confirm',
-                            style: TextStyle(color: Colors.black),
-                          ),
                         ),
                         TextButton(
                           style: TextButton.styleFrom(
@@ -215,7 +294,9 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: _isSubmitting
+                              ? null
+                              : () => Navigator.pop(context),
                           child: const Text(
                             'Cancel',
                             style: TextStyle(color: Colors.black),
