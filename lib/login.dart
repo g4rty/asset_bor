@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:asset_bor/lecturer/lecturer_asset_list.dart';
+
 import '/config.dart';
 import 'auth_storage.dart';
 import '/lecturer/lecturer_home_page.dart';
@@ -60,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
 
         Widget? destination;
         if (_role == 'lecturer') {
-          destination = const LecturerHomePage();
+          destination = const LecturerAssetList();
         } else if (_role == 'staff') {
           destination = const StaffHomePage();
         } else if (_role == 'student') {

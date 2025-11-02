@@ -1,8 +1,10 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import 'student_home_page.dart';
 import 'student_assets_list.dart';
 import 'history_screen.dart';
-import 'package:flutter/material.dart';
-
 import '../../auth_storage.dart';
 import '../../login.dart';
 
@@ -16,6 +18,89 @@ class CancelStatusScreen extends StatefulWidget {
 class _CancelStatusScreenState extends State<CancelStatusScreen> {
   int _selectedIndex = 2;
   bool _loggingOut = false;
+
+  String? _itemId;
+  String? _itemName;
+  String? _borrowDate;
+  String? _returnDate;
+  String? _objective;
+  String? _currentStatus;
+  String? _assetImage;
+
+  String formatDate(String? rawDate) {
+    if (rawDate == null) return '';
+    final date = DateTime.parse(rawDate);
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  bool _loading = true;
+  bool _isCancelling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLatestRequest();
+  }
+
+  Future<void> _fetchLatestRequest() async {
+    try {
+      final userId = await AuthStorage.getUserId();
+      if (userId == null) return;
+
+      final url = Uri.parse(
+        'http://10.0.0.74:3000/api/student/$userId/latest-request',
+      );
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _itemId = data['request_id'].toString();
+          _itemName = data['asset_name'];
+          _borrowDate = data['borrow_date'];
+          _returnDate = data['return_date'];
+          _objective = data['reason'];
+          _currentStatus = data['status'];
+          _assetImage = data['asset_image'];
+          _loading = false;
+        });
+      } else {
+        setState(() => _loading = false);
+      }
+    } catch (e) {
+      print('Error fetching latest request: $e');
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _cancelRequest() async {
+    if (_itemId == null || _isCancelling) return;
+    setState(() => _isCancelling = true);
+
+    final userId = await AuthStorage.getUserId();
+    final url = Uri.parse('http://10.0.0.74:3000/api/request/$_itemId/cancel');
+    final res = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'borrowerId': userId}),
+    );
+
+    if (!mounted) return;
+    setState(() => _isCancelling = false);
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(data['message'] ?? 'Cancelled')));
+      setState(() => _currentStatus = 'cancelled');
+    } else {
+      final err = jsonDecode(res.body);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(err['error'] ?? 'Cancel failed')));
+    }
+  }
 
   void _showCancelDialog() {
     showDialog(
@@ -37,8 +122,9 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextButton(
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.of(context).pop();
+                    await _cancelRequest();
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -88,10 +174,7 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
   }
 
   void handleNavbar(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
+    setState(() => _selectedIndex = index);
     switch (index) {
       case 0:
         Navigator.pushReplacement(
@@ -106,12 +189,11 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
         );
         break;
       case 2:
-        // อยู่หน้าปัจจุบัน
         break;
       case 3:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => HistoryScreen()),
+          MaterialPageRoute(builder: (_) => const HistoryScreen()),
         );
         break;
     }
@@ -186,9 +268,9 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1F1F1F),
+      backgroundColor: const Color(0xFF1F1F1F),
       appBar: AppBar(
-        backgroundColor: Color(0xFF1F1F1F),
+        backgroundColor: const Color(0xFF1F1F1F),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
@@ -226,112 +308,157 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
           ],
         ),
       ),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Center(
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.9,
-            decoration: BoxDecoration(
-              color: const Color(0xFF434343),
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black38,
-                  blurRadius: 25,
-                  offset: Offset(0, 15),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ✅ ปุ่ม Pending ด้านบน
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1E683),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'Pending',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _itemName == null
+          ? const Center(
+              child: Text(
+                'No recent borrow request',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF434343),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black38,
+                        blurRadius: 25,
+                        offset: Offset(0, 15),
                       ),
-                    ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 10),
-
-                // ✅ รูปภาพ
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.asset(
-                    'assets/images/Tennis.png',
-                    width: double.infinity,
-                    height: 280,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // ✅ ข้อมูล
-                const Text(
-                  '01 : Tennis',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 15),
-                const Text(
-                  'Borrow date: 12 Aug 25',
-                  style: TextStyle(color: Colors.white70, fontSize: 18),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Objective: Practice',
-                  style: TextStyle(color: Colors.white70, fontSize: 18),
-                ),
-
-                const SizedBox(height: 12),
-
-                // ✅ ปุ่ม Cancel ด้านล่าง
-                Center(
-                  child: SizedBox(
-                    width: 150,
-                    child: ElevatedButton(
-                      onPressed: _showCancelDialog,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        backgroundColor: const Color(0xFFF0A6A6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.asset(
+                          'assets/images/${_assetImage ?? "default.png"}',
+                          width: double.infinity,
+                          height: 280,
+                          fit: BoxFit.cover,
                         ),
-                        elevation: 8,
                       ),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(color: Colors.black, fontSize: 16),
+
+                      const SizedBox(height: 20),
+                      Text(
+                        'Request ${_itemId ?? "??"} : ${_itemName ?? ""}',
+
+                        style: const TextStyle(
+                          color: Color(0xFFD4FF00),
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Item: ${_itemName ?? ""}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Borrow date: ${formatDate(_borrowDate)}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Return date: ${formatDate(_returnDate)}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Objective: ${_objective ?? ""}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Text(
+                            'Status:',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _currentStatus?.toUpperCase() ?? "",
+                            style: TextStyle(
+                              color: _currentStatus == 'pending'
+                                  ? Colors.yellow
+                                  : _currentStatus == 'approved'
+                                  ? Colors.greenAccent
+                                  : _currentStatus == 'cancelled'
+                                  ? Colors.redAccent
+                                  : Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+                      if (_currentStatus == 'pending')
+                        Center(
+                          child: SizedBox(
+                            width: 150,
+                            child: ElevatedButton(
+                              onPressed: _isCancelling
+                                  ? null
+                                  : _showCancelDialog,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                backgroundColor: const Color(0xFFF0A6A6),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                elevation: 8,
+                              ),
+                              child: _isCancelling
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
-
       bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavbar),
     );
   }

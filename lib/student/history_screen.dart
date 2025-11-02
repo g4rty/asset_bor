@@ -14,6 +14,7 @@ class BorrowHistory {
   final String objective;
   final String status;
   final String imagePath;
+  final String? actualReturnDate;
 
   BorrowHistory({
     required this.item,
@@ -24,6 +25,7 @@ class BorrowHistory {
     required this.objective,
     required this.status,
     required this.imagePath,
+    this.actualReturnDate,
   });
 }
 
@@ -266,10 +268,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 6),
+
+                Text(
+                  'Approve By: ${item.objective}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+
+                const SizedBox(height: 6),
+
                 Text(
                   'Objective: ${item.objective}',
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
+
+                const SizedBox(height: 6),
+                Text(
+                  'Actual Return Date: ${item.actualReturnDate}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+
                 const SizedBox(height: 12),
 
                 // 🔸 สถานะ
@@ -374,6 +391,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       objective: 'Practice',
       status: 'approved',
       imagePath: 'assets/images/Tennis.png',
+      actualReturnDate: '13 Aug 25',
     ),
     BorrowHistory(
       item: 'Basketball',
@@ -384,6 +402,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       objective: 'Practice',
       status: 'ejected',
       imagePath: 'assets/images/Basketball.png',
+      actualReturnDate: '-',
     ),
     BorrowHistory(
       item: 'Football',
@@ -394,6 +413,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       objective: 'Competition',
       status: 'approved',
       imagePath: 'assets/images/Football.png',
+      actualReturnDate: '15 Aug 25',
     ),
   ];
 }

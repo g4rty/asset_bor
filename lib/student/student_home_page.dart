@@ -1,10 +1,12 @@
-import 'package:asset_bor/student/cancel_status_screen.dart';
-import 'package:asset_bor/student/history_screen.dart';
-import 'package:asset_bor/student/student_assets_list.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../../auth_storage.dart';
 import '../../login.dart';
+import 'cancel_status_screen.dart';
+import 'history_screen.dart';
+import 'student_assets_list.dart';
 
 class StudentHomePage extends StatefulWidget {
   const StudentHomePage({super.key});
@@ -17,10 +19,42 @@ class _StudentHomePageState extends State<StudentHomePage> {
   int _selectedIndex = 0;
   bool _loggingOut = false;
 
+  List<dynamic> _assets = [];
+  bool _loadingAssets = true;
+
   static const Color _scaffoldBgColor = Color(0xFF000000);
   static const Color _darkCardColor = Color(0xFF434343);
   static const Color _accentColor = Color(0xFFD4FF00);
   static const Color _lightTextColor = Color.fromARGB(255, 224, 224, 224);
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAllAssets();
+  }
+
+  Future<void> _fetchAllAssets() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.0.74:3000/api/assets'),
+      );
+      print('✅ Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('📦 Data: $data');
+        setState(() {
+          _assets = data.reversed.toList(); //เรียงของIDจากมากไปน้อย
+        });
+      } else {
+        print('❌ Error: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Fetch error: $e');
+    } finally {
+      setState(() => _loadingAssets = false);
+    }
+  }
 
   void handleNavbar(int index) {
     setState(() => _selectedIndex = index);
@@ -31,19 +65,25 @@ class _StudentHomePageState extends State<StudentHomePage> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const StudentAssetsList()),
-        );
+        ).then((_) {
+          setState(() => _selectedIndex = 0);
+        });
         break;
       case 2:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => CancelStatusScreen()),
-        );
+          MaterialPageRoute(builder: (_) => const CancelStatusScreen()),
+        ).then((_) {
+          setState(() => _selectedIndex = 0);
+        });
         break;
       case 3:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => HistoryScreen()),
-        );
+          MaterialPageRoute(builder: (_) => const HistoryScreen()),
+        ).then((_) {
+          setState(() => _selectedIndex = 0);
+        });
         break;
     }
   }
@@ -118,89 +158,97 @@ class _StudentHomePageState extends State<StudentHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _scaffoldBgColor,
-      body: Stack(
-        children: [
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Home Page',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
+                  const Text(
+                    'Home Page',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  _loggingOut
+                      ? const SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : IconButton(
+                          icon: const Icon(
+                            Icons.logout,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                          onPressed: _confirmAndLogout,
                         ),
-                      ),
-                      _loggingOut
-                          ? const SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : IconButton(
-                              icon: const Icon(
-                                Icons.logout,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                              onPressed: _confirmAndLogout,
-                            ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  _buildRulesSection(),
-                  const SizedBox(height: 32),
-                  _buildAssetCard(
-                    imagePath: 'assets/images/Tennis.png',
-                    title: '01 : TENNIS RACKET',
-                    subtitle: '24 lbs tension, light head, stiff shaft',
-                    isNew: true, //
-                  ),
-                  const SizedBox(height: 16),
-                  _buildAssetCard(
-                    imagePath: 'assets/images/Basketball.png',
-                    title: '02 : BASKETBALL',
-                    subtitle: '600 g weight, composite leather cover',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildAssetCard(
-                    imagePath: 'assets/images/Football.png',
-                    title: '03 : FOOTBALL',
-                    subtitle: 'Size 5, 0.8 bar pressure, 32-panel PU shell',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildAssetCard(
-                    imagePath: 'assets/images/Volleyball.png',
-                    title: '04 : VOLLEYBALL',
-                    subtitle: 'Official size, microfiber surface',
-                  ),
-                  const SizedBox(height: 80),
                 ],
               ),
-            ),
+              const SizedBox(height: 24),
+              _buildRulesSection(),
+              const SizedBox(height: 32),
+
+              // แสดงรายการสินค้าจากฐานข้อมูล
+              if (_loadingAssets)
+                const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              else if (_assets.isEmpty)
+                const Center(
+                  child: Text(
+                    'No asset found.',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                )
+              else
+                Column(
+                  children: List.generate(_assets.length, (index) {
+                    final asset = _assets[index];
+                    final isNew = index == 0;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: _buildAssetCard(
+                        imagePath:
+                            'assets/images/${asset['image'] ?? 'placeholder.png'}',
+                        title: asset['asset_name'] ?? 'Unnamed',
+                        subtitle: asset['asset_status'] ?? '',
+                        assetId: asset['asset_id'],
+                        description: asset['description'] ?? '',
+                        isNew: isNew,
+                      ),
+                    );
+                  }),
+                ),
+
+              const SizedBox(height: 80),
+            ],
           ),
-        ],
+        ),
       ),
       bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavbar),
     );
   }
 
-  // 🔹 แก้ให้ RuleCard เป็นแนวตั้ง (3 แถว)
   Widget _buildRulesSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: const [
           Row(
-            children: const [
+            children: [
               Icon(Icons.rule, color: Colors.white, size: 22),
               SizedBox(width: 8),
               Text(
@@ -213,20 +261,20 @@ class _StudentHomePageState extends State<StudentHomePage> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const _RuleCard(
+          SizedBox(height: 12),
+          _RuleCard(
             number: '01',
             title: 'FIRST',
-            description: 'One asset per day\nStudents can borrow only.',
+            description: 'One asset per day Students only.',
           ),
-          const SizedBox(height: 12),
-          const _RuleCard(
+          SizedBox(height: 12),
+          _RuleCard(
             number: '02',
             title: 'AVAILABLE',
-            description: 'Only borrow items marked "Available".',
+            description: 'Borrow only "Available" items.',
           ),
-          const SizedBox(height: 12),
-          const _RuleCard(
+          SizedBox(height: 12),
+          _RuleCard(
             number: '03',
             title: 'VALID',
             description: 'Borrowing must start today or later.',
@@ -240,117 +288,125 @@ class _StudentHomePageState extends State<StudentHomePage> {
     required String imagePath,
     required String title,
     required String subtitle,
+    required int assetId,
+    required String description,
     bool isNew = false,
   }) {
+    final isAvailable = subtitle == 'Available';
+    final Color disableColor = Color(0xFF616161);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (isNew)
-          const Padding(
-            padding: EdgeInsets.only(left: 8, bottom: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 6),
             child: Text(
               'NEW',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
               ),
             ),
           ),
-
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 42, 42, 44),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.5),
-                blurRadius: 6,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: DecorationImage(
-                    image: AssetImage(imagePath),
-                    fit: BoxFit.cover,
+        GestureDetector(
+          onTap: null,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _darkCardColor,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 6,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    image: DecorationImage(
+                      image: AssetImage(imagePath),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: _lightTextColor,
-                        fontSize: 13,
+                      Text(
+                        description.isNotEmpty
+                            ? description
+                            : 'No description available',
+                        style: const TextStyle(
+                          color: Color(0xFFB0B0B0),
+                          fontSize: 13,
+                          height: 1.3,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Align(
-                      alignment: Alignment.bottomRight,
-                      child: _buildAvailableChip(),
-                    ),
-                  ],
+                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isAvailable ? _accentColor : disableColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            isAvailable ? 'Available' : 'Disable',
+                            style: TextStyle(
+                              color: isAvailable ? Colors.black : Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
     );
   }
-
-  Widget _buildAvailableChip() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: _accentColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: const Text(
-        'Available',
-        style: TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
 }
 
 class _RuleCard extends StatelessWidget {
+  final String number;
+  final String title;
+  final String description;
+
   const _RuleCard({
     required this.number,
     required this.title,
     required this.description,
   });
-
-  final String number;
-  final String title;
-  final String description;
 
   @override
   Widget build(BuildContext context) {
@@ -358,14 +414,10 @@ class _RuleCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 42, 42, 44), // เหมือน asset card
+        color: Color.fromARGB(255, 42, 42, 44),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 6),
         ],
       ),
       child: Row(
@@ -409,6 +461,8 @@ class _RuleCard extends StatelessWidget {
                     fontSize: 13,
                     height: 1.3,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -421,7 +475,6 @@ class _RuleCard extends StatelessWidget {
 
 class NavBar extends StatelessWidget {
   const NavBar({super.key, required this.index, required this.onTap});
-
   final int index;
   final ValueChanged<int> onTap;
 
