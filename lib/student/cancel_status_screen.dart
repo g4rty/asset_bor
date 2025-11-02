@@ -349,7 +349,8 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
 
                       const SizedBox(height: 20),
                       Text(
-                        '${_itemId ?? "??"} : ${_itemName ?? ""}',
+                        'Request ${_itemId ?? "??"} : ${_itemName ?? ""}',
+
                         style: const TextStyle(
                           color: Color(0xFFD4FF00),
                           fontSize: 22,
@@ -409,7 +410,7 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                                   : _currentStatus == 'cancelled'
                                   ? Colors.redAccent
                                   : Colors.white,
-                              fontSize: 18,
+                              fontSize: 17,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
