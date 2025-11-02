@@ -1,9 +1,12 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:asset_bor/student/cancel_status_screen.dart';
 import 'package:flutter/material.dart';
 import 'student_home_page.dart';
 import 'student_assets_list.dart';
 import '../../auth_storage.dart';
 import '../../login.dart';
+import '../config.dart'; // ✅ เพิ่ม import config สำหรับ baseUrl
 
 class BorrowHistory {
   final String item;
@@ -15,6 +18,7 @@ class BorrowHistory {
   final String status;
   final String imagePath;
   final String? actualReturnDate;
+  final String? rejectionReason;
 
   BorrowHistory({
     required this.item,
@@ -26,7 +30,52 @@ class BorrowHistory {
     required this.status,
     required this.imagePath,
     this.actualReturnDate,
+    this.rejectionReason,
   });
+
+  // ✅ เพิ่ม fromJson เพื่อรับข้อมูลจาก backend
+  factory BorrowHistory.fromJson(Map<String, dynamic> j) {
+    String formatDate(String? d) {
+      if (d == null || d.isEmpty) return '-';
+
+      try {
+        final dt = DateTime.parse(d); // รองรับทั้งแบบมีเวลาและไม่มีเวลา
+        const months = [
+          '',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
+        return '${dt.day.toString().padLeft(2, '0')} ${months[dt.month]} ${dt.year % 100}';
+      } catch (e) {
+        return '-';
+      }
+    }
+
+    return BorrowHistory(
+      item: j['asset_name'] ?? '-',
+      borrowId: j['request_id'].toString(),
+      approver: j['approver_name'] ?? '-',
+      borrowDate: formatDate(j['borrow_date']),
+      returnDate: formatDate(j['return_date']),
+      actualReturnDate: formatDate(j['returned_date']),
+      objective: j['objective'] ?? '-',
+      status: j['decision_status'] ?? '-',
+      rejectionReason: j['rejection_reason'],
+      imagePath: j['asset_image'] != null && j['asset_image'].isNotEmpty
+          ? 'assets/images/${j['asset_image']}'
+          : 'assets/images/placeholder.png',
+    );
+  }
 }
 
 class HistoryScreen extends StatefulWidget {
@@ -38,8 +87,42 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   int _selectedIndex = 3;
+  bool _loggingOut = false;
+
+  late Future<List<BorrowHistory>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _fetchHistory();
+  }
+
+  // ✅ ดึงข้อมูลจาก backend
+  Future<List<BorrowHistory>> _fetchHistory() async {
+    final userId = await AuthStorage.getUserId();
+    if (userId == null) {
+      await AuthStorage.clearUserId();
+      if (!mounted) return [];
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+      return [];
+    }
+
+    final url = Uri.parse('${AppConfig.baseUrl}/students/$userId/history');
+    final response = await http.get(url);
+
+    if (response.statusCode != 200) {
+      throw Exception('HTTP ${response.statusCode}: ${response.body}');
+    }
+
+    final List data = jsonDecode(response.body);
+    return data.map((e) => BorrowHistory.fromJson(e)).toList();
+  }
 
   void handleNavbar(int index) {
+    if (_selectedIndex == index) return;
     setState(() {
       _selectedIndex = index;
     });
@@ -69,22 +152,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Color _getStatusColor(String status) {
-    if (status == 'Rejected') return const Color(0xFFEF5350);
-    return const Color(0xFFD4FFAA);
-  }
-
-  String _getStatusText(String status, String returnDate) {
-    if (status == 'Rejected') return 'Rejected: Under repair';
-    return 'Returned: ${_formatReturnDate(returnDate)}';
-  }
-
-  String _formatReturnDate(String returnDate) {
-    final dateParts = returnDate.split(' ');
-    return '${dateParts[0]} ${dateParts[1]} ${dateParts[2]}';
-  }
-
-  bool _loggingOut = false;
+  bool _loggingOutNow = false;
 
   Future<void> _confirmAndLogout() async {
     final ok = await showDialog<bool>(
@@ -138,8 +206,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _logout() async {
-    if (_loggingOut) return;
-    setState(() => _loggingOut = true);
+    if (_loggingOutNow) return;
+    setState(() => _loggingOutNow = true);
     try {
       await AuthStorage.clearUserId();
       if (!mounted) return;
@@ -148,14 +216,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
         (route) => false,
       );
     } finally {
-      if (mounted) setState(() => _loggingOut = false);
+      if (mounted) setState(() => _loggingOutNow = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1F1F1F),
+      backgroundColor: const Color(0xFF1F1F1F),
       appBar: AppBar(
         backgroundColor: Colors.black,
         centerTitle: true,
@@ -179,7 +247,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 color: Colors.white,
               ),
             ),
-            _loggingOut
+            _loggingOutNow
                 ? const SizedBox(
                     width: 28,
                     height: 28,
@@ -196,30 +264,77 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ],
         ),
       ),
-      body: ListView.builder(
-        itemCount: _borrowHistoryList.length,
-        itemBuilder: (context, index) {
-          final item = _borrowHistoryList[index];
-          return _buildHistoryCard(item);
+
+      // ✅ ใช้ FutureBuilder ดึงข้อมูลจริงแทน mock data
+      body: FutureBuilder<List<BorrowHistory>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            );
+          }
+
+          final history = snapshot.data ?? [];
+          if (history.isEmpty) {
+            return const Center(
+              child: Text(
+                'No borrowing history found',
+                style: TextStyle(color: Colors.white70),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: history.length,
+            itemBuilder: (context, index) {
+              return _buildHistoryCard(history[index]);
+            },
+          );
         },
       ),
+
       bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavbar),
     );
   }
 
   Widget _buildHistoryCard(BorrowHistory item) {
-    final bool isRejected = item.status == 'Rejected';
+    final bool isRejected = item.status == 'rejected';
+    final bool isApproved = item.status == 'approved';
+    final bool isCancelled = item.status == 'cancelled';
+    final bool isPending = item.status == 'pending';
 
-    // 🔸 กำหนดข้อความและสีตามสถานะ
-    final String statusText = isRejected
-        ? 'Rejected: Temporarily under repair'
-        : 'Approved';
+    Color statusColor;
+    String statusText;
+    Color textColor = Colors.black;
 
-    final Color statusColor = isRejected
-        ? const Color(0xFFEF5350)
-        : const Color(0xFFD4FFAA);
-
-    final Color textColor = isRejected ? Colors.white : Colors.black;
+    if (isRejected) {
+      statusColor = const Color(0xFFEF5350);
+      statusText = 'Rejected: ${item.rejectionReason ?? '-'}';
+      textColor = Colors.white;
+    } else if (isPending) {
+      // ✅ เพิ่มเงื่อนไขนี้
+      statusColor = Colors.yellowAccent;
+      statusText = 'Pending';
+    } else if (isApproved && item.actualReturnDate != '-') {
+      statusColor = const Color(0xFFD4FFAA);
+      statusText = 'Returned: ${item.actualReturnDate}';
+    } else if (isCancelled) {
+      statusColor = Colors.grey;
+      statusText = 'Cancelled';
+    } else {
+      statusColor = const Color(0xFFAEE4FF);
+      statusText = 'Borrowing';
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
@@ -238,7 +353,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔸 รูปภาพ
+          // รูปภาพ
           Container(
             width: 100,
             height: 100,
@@ -248,7 +363,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           const SizedBox(width: 16),
 
-          // 🔸 รายละเอียด
+          // รายละเอียด
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,34 +377,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-
                 Text(
                   'Date: ${item.borrowDate} – ${item.returnDate}',
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 6),
-
                 Text(
-                  'Approve By: ${item.objective}',
+                  'Approve By: ${item.approver}',
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
-
                 const SizedBox(height: 6),
-
                 Text(
                   'Objective: ${item.objective}',
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
-
                 const SizedBox(height: 6),
                 Text(
-                  'Actual Return Date: ${item.actualReturnDate}',
+                  'Actual Return: ${item.actualReturnDate == '-' ? '-' : item.actualReturnDate}',
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
 
                 const SizedBox(height: 12),
-
-                // 🔸 สถานะ
                 Align(
                   alignment: Alignment.bottomRight,
                   child: Container(
@@ -318,102 +426,4 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
-
-  Widget _buildItemImage(String imagePath) {
-    return Container(
-      width: 120,
-      height: 100,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
-      child: Image.asset(imagePath, fit: BoxFit.contain),
-    );
-  }
-
-  Widget _buildItemDetails(BorrowHistory item) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '${item.borrowId} ${item.item}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 6),
-        _buildInfo('Approver', item.approver),
-        _buildInfo('Borrow Date', item.borrowDate),
-        _buildInfo('Return Date', item.returnDate),
-        _buildInfo('Objective', item.objective),
-        const SizedBox(height: 10),
-        _buildStatus(item),
-      ],
-    );
-  }
-
-  Widget _buildInfo(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.5),
-      child: Text(
-        '$label: $value',
-        style: const TextStyle(color: Colors.white70, fontSize: 14),
-      ),
-    );
-  }
-
-  Widget _buildStatus(BorrowHistory item) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: _getStatusColor(item.status),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        _getStatusText(item.status, item.returnDate),
-        style: TextStyle(color: _getStatusTextColor(item.status), fontSize: 14),
-      ),
-    );
-  }
-
-  Color _getStatusTextColor(String status) {
-    if (status == 'Rejected') return Colors.white;
-    return Colors.black;
-  }
-
-  final List<BorrowHistory> _borrowHistoryList = [
-    BorrowHistory(
-      item: 'Tennis',
-      borrowId: '01',
-      approver: 'PupPub',
-      borrowDate: '12 Aug 25',
-      returnDate: '13 Aug 25',
-      objective: 'Practice',
-      status: 'approved',
-      imagePath: 'assets/images/Tennis.png',
-      actualReturnDate: '13 Aug 25',
-    ),
-    BorrowHistory(
-      item: 'Basketball',
-      borrowId: '02',
-      approver: 'Pub',
-      borrowDate: '12 Aug 25',
-      returnDate: '13 Aug 25',
-      objective: 'Practice',
-      status: 'ejected',
-      imagePath: 'assets/images/Basketball.png',
-      actualReturnDate: '-',
-    ),
-    BorrowHistory(
-      item: 'Football',
-      borrowId: '03',
-      approver: 'PupPubPub',
-      borrowDate: '13 Aug 25',
-      returnDate: '14 Aug 25',
-      objective: 'Competition',
-      status: 'approved',
-      imagePath: 'assets/images/Football.png',
-      actualReturnDate: '15 Aug 25',
-    ),
-  ];
 }

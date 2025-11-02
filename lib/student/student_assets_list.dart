@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'student_home_page.dart';
 import 'student_request_form.dart';
 import 'package:asset_bor/student/history_screen.dart';
-
+import '../config.dart';
 import '../../auth_storage.dart';
 import '../../login.dart';
 
@@ -19,13 +19,27 @@ class StudentAssetsList extends StatefulWidget {
 }
 
 class _StudentAssetsListState extends State<StudentAssetsList> {
-  // 🔥 จากเดิมเป็น mock data ตอนนี้เราจะโหลดจริงจาก backend
   final List<Map<String, dynamic>> assets = [];
 
   static const Color _scaffoldBgColor = Color(0xFF1F1F1F);
   static const Color _darkCardColor = Color(0xFF434343);
   static const Color _accentColor = Color(0xFFD4FF00);
   static const Color _lightTextColor = Color(0xFFD9D9D9);
+
+  Color _getCardBackgroundColor(Map<String, dynamic> asset) {
+    final status = asset['status'];
+    final quantity = asset['quantity'] ?? 0;
+
+    if (status == 'Disabled' || status == 'Disable') {
+      return const Color(0xFF2A2A2A); // เทาอ่อนสำหรับ Disabled
+    } else if (quantity <= 0) {
+      return const Color(0xFF3A3A3A); // เทาเข้มขึ้นสำหรับ Out of Stock
+    } else if (status == 'Available') {
+      return const Color(0xFF434343); // สีเดิมสำหรับ Available
+    } else {
+      return _darkCardColor; // fallback
+    }
+  }
 
   int _selectedIndex = 1;
   int? _tappedIndex;
@@ -35,7 +49,7 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
   Future<void> _fetchAssets() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.0.74:3000/api/assets'),
+        Uri.parse('${AppConfig.baseUrl}/api/assets'),
       );
 
       if (response.statusCode == 200) {
@@ -49,6 +63,7 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
                 'name': e['asset_name'] ?? 'Unnamed',
                 'description': e['description'] ?? 'No description',
                 'status': e['asset_status'] ?? 'Unknown',
+                'quantity': e['quantity'] ?? 0,
                 'image': e['image'] != null && e['image'].isNotEmpty
                     ? 'assets/images/${e['image']}'
                     : 'assets/images/placeholder.png',
@@ -88,29 +103,67 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
   }
 
   Widget _buildAvailableChip(Map<String, dynamic> asset) {
+    final status = asset['status'];
+    final int quantity = asset['quantity'] ?? 0;
+
+    String label;
+    Color bgColor;
+    bool isClickable = false;
+
+    // Disabled
+    if (status == 'Disable' || status == 'Disabled') {
+      label = 'Disabled';
+      bgColor = const Color(0xFFB0B0B0);
+    }
+    // Out of Stock (ให้เป็นสีเทาเหมือน Disable)
+    else if (quantity <= 0) {
+      label = 'Out of Stock';
+      bgColor = const Color(0xFFB0B0B0); // สีเทาเหมือน Disable
+    }
+    // 🟢 Available
+    else if (status == 'Available') {
+      label = 'Available';
+      bgColor = const Color(0xFFD4FFAA); // สีเขียวอ่อน
+      isClickable = true; // ✅ ยืมได้
+    }
+    // 🔵 Borrowed
+    else if (status == 'Borrowed') {
+      label = 'Borrowed';
+      bgColor = const Color(0xFF6ED0FF); // สีฟ้า
+    }
+    // ⚪ อื่น ๆ
+    else {
+      label = status;
+      bgColor = Colors.grey;
+    }
+
+    // ถ้าไม่สามารถยืมได้ ให้ disable การกด + opacity จางลง
     return GestureDetector(
-      onTap: () {
-        if (asset['status'] == 'Available') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StudentRequestForm(asset: asset),
+      onTap: isClickable
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StudentRequestForm(asset: asset),
+                ),
+              );
+            }
+          : null, // ❌ ห้ามกดถ้าไม่ available
+      child: Opacity(
+        opacity: isClickable ? 1.0 : 0.6, // จางลงถ้าห้ามกด
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
             ),
-          );
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: _getStatusColor(asset['status']),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          asset['status'],
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -242,7 +295,9 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
               itemCount: assets.length,
               itemBuilder: (context, index) {
                 final asset = assets[index];
-                final bool isAvailable = asset['status'] == 'Available';
+                final bool isAvailable =
+                    asset['status'] == 'Available' &&
+                    (asset['quantity'] ?? 0) > 0;
 
                 return GestureDetector(
                   onTapDown: isAvailable
@@ -275,7 +330,7 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
                         margin: const EdgeInsets.only(bottom: 14),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: _darkCardColor,
+                          color: _getCardBackgroundColor(asset),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(

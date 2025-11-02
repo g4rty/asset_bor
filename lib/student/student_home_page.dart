@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
+import '../config.dart';
 import '../../auth_storage.dart';
 import '../../login.dart';
 import 'cancel_status_screen.dart';
@@ -36,27 +36,39 @@ class _StudentHomePageState extends State<StudentHomePage> {
   Future<void> _fetchAllAssets() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.0.74:3000/api/assets'),
+        Uri.parse('${AppConfig.baseUrl}/api/assets'),
       );
-      print('✅ Response status: ${response.statusCode}');
+      print('Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('📦 Data: $data');
+
+        // ✅ กรองเอาเฉพาะสินค้าที่ Available เท่านั้น
+        final availableAssets = (data as List)
+            .where(
+              (asset) =>
+                  asset['asset_status'] == 'Available' &&
+                  (asset['quantity'] ?? 1) > 0,
+            )
+            .toList()
+            .reversed
+            .toList();
+
         setState(() {
-          _assets = data.reversed.toList(); //เรียงของIDจากมากไปน้อย
+          _assets = availableAssets;
         });
       } else {
-        print('❌ Error: ${response.body}');
+        print('Error: ${response.body}');
       }
     } catch (e) {
-      print('❌ Fetch error: $e');
+      print('Fetch error: $e');
     } finally {
       setState(() => _loadingAssets = false);
     }
   }
 
   void handleNavbar(int index) {
+    if (_selectedIndex == index) return;
     setState(() => _selectedIndex = index);
     switch (index) {
       case 0:
@@ -196,7 +208,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
               _buildRulesSection(),
               const SizedBox(height: 32),
 
-              // แสดงรายการสินค้าจากฐานข้อมูล
+              // ✅ แสดงเฉพาะสินค้าที่ Available และแค่ 3 ชิ้น
               if (_loadingAssets)
                 const Center(
                   child: CircularProgressIndicator(
@@ -207,29 +219,32 @@ class _StudentHomePageState extends State<StudentHomePage> {
               else if (_assets.isEmpty)
                 const Center(
                   child: Text(
-                    'No asset found.',
+                    'No available asset found.',
                     style: TextStyle(color: Colors.white),
                   ),
                 )
               else
                 Column(
-                  children: List.generate(_assets.length, (index) {
-                    final asset = _assets[index];
-                    final isNew = index == 0;
+                  children: () {
+                    int displayCount = _assets.length >= 3 ? 3 : _assets.length;
+                    return List.generate(displayCount, (index) {
+                      final asset = _assets[index];
+                      final isNew = index == 0;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: _buildAssetCard(
-                        imagePath:
-                            'assets/images/${asset['image'] ?? 'placeholder.png'}',
-                        title: asset['asset_name'] ?? 'Unnamed',
-                        subtitle: asset['asset_status'] ?? '',
-                        assetId: asset['asset_id'],
-                        description: asset['description'] ?? '',
-                        isNew: isNew,
-                      ),
-                    );
-                  }),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: _buildAssetCard(
+                          imagePath:
+                              'assets/images/${asset['image'] ?? 'placeholder.png'}',
+                          title: asset['asset_name'] ?? 'Unnamed',
+                          subtitle: asset['asset_status'] ?? '',
+                          assetId: asset['asset_id'],
+                          description: asset['description'] ?? '',
+                          isNew: isNew,
+                        ),
+                      );
+                    });
+                  }(),
                 ),
 
               const SizedBox(height: 80),
@@ -292,9 +307,6 @@ class _StudentHomePageState extends State<StudentHomePage> {
     required String description,
     bool isNew = false,
   }) {
-    final isAvailable = subtitle == 'Available';
-    final Color disableColor = Color(0xFF616161);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -310,86 +322,82 @@ class _StudentHomePageState extends State<StudentHomePage> {
               ),
             ),
           ),
-        GestureDetector(
-          onTap: null,
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: _darkCardColor,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
-                  blurRadius: 6,
-                  offset: const Offset(0, 4),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: _darkCardColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 6,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  image: DecorationImage(
+                    image: AssetImage(imagePath),
+                    fit: BoxFit.cover,
+                  ),
                 ),
-              ],
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    image: DecorationImage(
-                      image: AssetImage(imagePath),
-                      fit: BoxFit.cover,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                    Text(
+                      description.isNotEmpty
+                          ? description
+                          : 'No description available',
+                      style: const TextStyle(
+                        color: Color(0xFFB0B0B0),
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.bottomRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _accentColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Available',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        description.isNotEmpty
-                            ? description
-                            : 'No description available',
-                        style: const TextStyle(
-                          color: Color(0xFFB0B0B0),
-                          fontSize: 13,
-                          height: 1.3,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isAvailable ? _accentColor : disableColor,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            isAvailable ? 'Available' : 'Disable',
-                            style: TextStyle(
-                              color: isAvailable ? Colors.black : Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],
