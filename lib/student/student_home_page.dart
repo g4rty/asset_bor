@@ -42,8 +42,6 @@ class _StudentHomePageState extends State<StudentHomePage> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
-        // ✅ กรองเอาเฉพาะสินค้าที่ Available เท่านั้น
         final availableAssets = (data as List)
             .where(
               (asset) =>
@@ -208,7 +206,6 @@ class _StudentHomePageState extends State<StudentHomePage> {
               _buildRulesSection(),
               const SizedBox(height: 32),
 
-              // ✅ แสดงเฉพาะสินค้าที่ Available และแค่ 3 ชิ้น
               if (_loadingAssets)
                 const Center(
                   child: CircularProgressIndicator(

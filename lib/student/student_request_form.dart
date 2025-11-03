@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config.dart';
 import 'package:intl/intl.dart';
+import 'student_home_page.dart';
+import 'student_assets_list.dart';
+import 'cancel_status_screen.dart';
+import 'history_screen.dart';
 
-import '../../auth_storage.dart'; // ✅ ใช้เพื่อดึง user id ที่ login อยู่
+import '../../auth_storage.dart';
 
 class StudentRequestForm extends StatefulWidget {
   final Map<String, dynamic> asset;
@@ -47,7 +51,6 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
       final now = DateTime.now();
       final tomorrow = now.add(const Duration(days: 1));
 
-      // ✅ ใช้ format แบบ yyyy-MM-dd
       final borrowDate = DateFormat('yyyy-MM-dd').format(now);
       final returnDate = DateFormat('yyyy-MM-dd').format(tomorrow);
 
@@ -70,26 +73,79 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
         );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Borrow request submitted successfully!'),
+            backgroundColor: Colors.greenAccent,
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.black),
+                SizedBox(width: 10),
+                Text(
+                  'Borrow request submitted successfully!',
+                  style: TextStyle(color: Colors.black),
+                ),
+              ],
+            ),
           ),
         );
       } else {
-        print('Server Error: ${response.body}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit request: ${response.body}')),
-        );
+        try {
+          final Map<String, dynamic> data = jsonDecode(response.body);
+          final msg = data['error'] ?? 'Failed to submit request';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.amberAccent,
+              content: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.black),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      msg,
+                      style: const TextStyle(color: Colors.black),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } catch (_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.redAccent,
+              content: Row(
+                children: [
+                  Icon(Icons.error, color: Colors.white),
+                  SizedBox(width: 10),
+                  Text('Failed to submit request'),
+                ],
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       print('Error: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error submitting request: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Error submitting request: $e',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  //ยืนยันก่อนส่ง
   void _showConfirmDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -164,13 +220,13 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
     return Scaffold(
       backgroundColor: _scaffoldBg,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
           'Request Form',
           style: TextStyle(color: Colors.white),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -220,13 +276,10 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ✅ Request Title
                     Text(
                       'Request ${asset['id'] ?? asset['asset_id']} : ${asset['name'] ?? "Unknown"}',
                       style: const TextStyle(
-                        color: Color(
-                          0xFFD4FF00,
-                        ), // Yellow-Green like your screenshot
+                        color: Color(0xFFD4FF00),
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
                       ),
@@ -234,7 +287,6 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
 
                     const SizedBox(height: 6),
 
-                    // ✅ Item line below title
                     Text(
                       'Item: ${asset['name'] ?? "Unknown"}',
                       style: const TextStyle(
@@ -246,7 +298,6 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
 
                     const SizedBox(height: 6),
 
-                    // ✅ เปลี่ยนจาก "Today — Tomorrow" เป็นวันที่จริง
                     Text(
                       "Borrow Date: ${formatDate(now)} — Return: ${formatDate(tomorrow)}",
                       style: const TextStyle(

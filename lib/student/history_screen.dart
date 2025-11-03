@@ -6,7 +6,7 @@ import 'student_home_page.dart';
 import 'student_assets_list.dart';
 import '../../auth_storage.dart';
 import '../../login.dart';
-import '../config.dart'; // ✅ เพิ่ม import config สำหรับ baseUrl
+import '../config.dart';
 
 class BorrowHistory {
   final String item;
@@ -33,13 +33,12 @@ class BorrowHistory {
     this.rejectionReason,
   });
 
-  // ✅ เพิ่ม fromJson เพื่อรับข้อมูลจาก backend
   factory BorrowHistory.fromJson(Map<String, dynamic> j) {
     String formatDate(String? d) {
       if (d == null || d.isEmpty) return '-';
 
       try {
-        final dt = DateTime.parse(d); // รองรับทั้งแบบมีเวลาและไม่มีเวลา
+        final dt = DateTime.parse(d);
         const months = [
           '',
           'Jan',
@@ -97,7 +96,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _future = _fetchHistory();
   }
 
-  // ✅ ดึงข้อมูลจาก backend
   Future<List<BorrowHistory>> _fetchHistory() async {
     final userId = await AuthStorage.getUserId();
     if (userId == null) {
@@ -147,7 +145,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
         );
         break;
       case 3:
-        // อยู่หน้าปัจจุบัน
         break;
     }
   }
@@ -225,18 +222,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF1F1F1F),
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFF1F1F1F),
         centerTitle: true,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const StudentHomePage()),
-            );
-          },
-        ),
+        leading: null,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -265,7 +255,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
       ),
 
-      // ✅ ใช้ FutureBuilder ดึงข้อมูลจริงแทน mock data
       body: FutureBuilder<List<BorrowHistory>>(
         future: _future,
         builder: (context, snapshot) {
@@ -322,7 +311,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       statusText = 'Rejected: ${item.rejectionReason ?? '-'}';
       textColor = Colors.white;
     } else if (isPending) {
-      // ✅ เพิ่มเงื่อนไขนี้
       statusColor = Colors.yellowAccent;
       statusText = 'Pending';
     } else if (isApproved && item.actualReturnDate != '-') {
@@ -353,7 +341,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // รูปภาพ
           Container(
             width: 100,
             height: 100,
@@ -363,7 +350,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           const SizedBox(width: 16),
 
-          // รายละเอียด
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

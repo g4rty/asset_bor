@@ -66,9 +66,7 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
       final userId = await AuthStorage.getUserId();
       if (userId == null) return;
 
-      final url = Uri.parse(
-        '${AppConfig.baseUrl}/api/student/$userId/latest-request',
-      );
+      final url = Uri.parse('${AppConfig.baseUrl}/api/student/$userId/status');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -120,8 +118,6 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
 
       setState(() {
         _currentStatus = 'cancelled';
-
-        // ✅ เคลียร์ข้อมูลเพื่อให้ UI ไม่แสดงรายการอีก
         _itemId = null;
         _itemName = null;
         _borrowDate = null;
@@ -309,17 +305,10 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF1F1F1F),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF1F1F1F),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const StudentHomePage()),
-            );
-          },
-        ),
+        leading: null,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
