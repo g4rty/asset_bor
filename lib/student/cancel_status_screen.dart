@@ -7,6 +7,7 @@ import 'student_assets_list.dart';
 import 'history_screen.dart';
 import '../../auth_storage.dart';
 import '../../login.dart';
+import '../config.dart';
 
 class CancelStatusScreen extends StatefulWidget {
   const CancelStatusScreen({super.key});
@@ -29,8 +30,26 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
 
   String formatDate(String? rawDate) {
     if (rawDate == null) return '';
+
     final date = DateTime.parse(rawDate);
-    return '${date.day}/${date.month}/${date.year}';
+
+    const months = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    return '${date.day} ${months[date.month]} ${date.year % 100}';
   }
 
   bool _loading = true;
@@ -47,13 +66,16 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
       final userId = await AuthStorage.getUserId();
       if (userId == null) return;
 
-      final url = Uri.parse(
-        'http://10.0.0.74:3000/api/student/$userId/latest-request',
-      );
+      final url = Uri.parse('${AppConfig.baseUrl}/api/student/$userId/status');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
+        if (data['status'] == 'cancelled') {
+          setState(() => _loading = false);
+          return;
+        }
         setState(() {
           _itemId = data['request_id'].toString();
           _itemName = data['asset_name'];
@@ -78,7 +100,7 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
     setState(() => _isCancelling = true);
 
     final userId = await AuthStorage.getUserId();
-    final url = Uri.parse('http://10.0.0.74:3000/api/request/$_itemId/cancel');
+    final url = Uri.parse('${AppConfig.baseUrl}/api/request/$_itemId/cancel');
     final res = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -93,12 +115,20 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(data['message'] ?? 'Cancelled')));
-      setState(() => _currentStatus = 'cancelled');
+
+      setState(() {
+        _currentStatus = 'cancelled';
+        _itemId = null;
+        _itemName = null;
+        _borrowDate = null;
+        _returnDate = null;
+        _objective = null;
+        _assetImage = null;
+      });
     } else {
-      final err = jsonDecode(res.body);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(err['error'] ?? 'Cancel failed')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to cancel request: ${res.body}')),
+      );
     }
   }
 
@@ -174,6 +204,7 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
   }
 
   void handleNavbar(int index) {
+    if (_selectedIndex == index) return;
     setState(() => _selectedIndex = index);
     switch (index) {
       case 0:
@@ -189,6 +220,10 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
         );
         break;
       case 2:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CancelStatusScreen()),
+        );
         break;
       case 3:
         Navigator.push(
@@ -270,17 +305,10 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF1F1F1F),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF1F1F1F),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const StudentHomePage()),
-            );
-          },
-        ),
+        leading: null,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -313,8 +341,8 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
           : _itemName == null
           ? const Center(
               child: Text(
-                'No recent borrow request',
-                style: TextStyle(color: Colors.white70, fontSize: 16),
+                'No active requests found',
+                style: TextStyle(color: Colors.white70, fontSize: 20),
               ),
             )
           : SingleChildScrollView(
@@ -367,15 +395,7 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Borrow date: ${formatDate(_borrowDate)}',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 18,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Return date: ${formatDate(_returnDate)}',
+                        'Date: ${formatDate(_borrowDate)} — ${formatDate(_returnDate)}',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 18,

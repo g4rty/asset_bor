@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:asset_bor/student/cancel_status_screen.dart';
-import 'package:flutter/material.dart';
 import 'student_home_page.dart';
 import 'student_request_form.dart';
 import 'package:asset_bor/student/history_screen.dart';
-
+import '../config.dart';
 import '../../auth_storage.dart';
 import '../../login.dart';
 
@@ -19,7 +18,6 @@ class StudentAssetsList extends StatefulWidget {
 }
 
 class _StudentAssetsListState extends State<StudentAssetsList> {
-  // 🔥 จากเดิมเป็น mock data ตอนนี้เราจะโหลดจริงจาก backend
   final List<Map<String, dynamic>> assets = [];
 
   static const Color _scaffoldBgColor = Color(0xFF1F1F1F);
@@ -28,14 +26,28 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
   static const Color _lightTextColor = Color(0xFFD9D9D9);
 
   int _selectedIndex = 1;
-  int? _tappedIndex;
   bool _loggingOut = false;
   bool _isLoading = true;
+
+  Color _getCardBackgroundColor(Map<String, dynamic> asset) {
+    final status = asset['status'];
+    final quantity = asset['quantity'] ?? 0;
+
+    if (status == 'Disabled' || status == 'Disable') {
+      return const Color(0xFF2A2A2A);
+    } else if (quantity <= 0) {
+      return const Color(0xFF3A3A3A);
+    } else if (status == 'Available') {
+      return const Color(0xFF434343);
+    } else {
+      return _darkCardColor;
+    }
+  }
 
   Future<void> _fetchAssets() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.0.74:3000/api/assets'),
+        Uri.parse('${AppConfig.baseUrl}/api/assets'),
       );
 
       if (response.statusCode == 200) {
@@ -49,6 +61,7 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
                 'name': e['asset_name'] ?? 'Unnamed',
                 'description': e['description'] ?? 'No description',
                 'status': e['asset_status'] ?? 'Unknown',
+                'quantity': e['quantity'] ?? 0,
                 'image': e['image'] != null && e['image'].isNotEmpty
                     ? 'assets/images/${e['image']}'
                     : 'assets/images/placeholder.png',
@@ -73,44 +86,58 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     _fetchAssets();
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Available':
-        return const Color(0xFFD4FFAA);
-      case 'Borrowed':
-        return const Color(0xFF6ED0FF);
-      case 'Disable':
-      case 'Disabled':
-        return const Color(0xFFB0B0B0);
-      default:
-        return Colors.grey;
-    }
-  }
-
   Widget _buildAvailableChip(Map<String, dynamic> asset) {
+    final status = asset['status'];
+    final int quantity = asset['quantity'] ?? 0;
+
+    String label;
+    Color bgColor;
+    bool isClickable = false;
+
+    if (status == 'Disable' || status == 'Disabled') {
+      label = 'Disabled';
+      bgColor = const Color(0xFFB0B0B0);
+    } else if (quantity <= 0) {
+      label = 'Out of Stock';
+      bgColor = const Color(0xFFB0B0B0);
+    } else if (status == 'Available') {
+      label = 'Available';
+      bgColor = const Color(0xFFD4FFAA);
+      isClickable = true;
+    } else if (status == 'Borrowed') {
+      label = 'Borrowed';
+      bgColor = const Color(0xFF6ED0FF);
+    } else {
+      label = status;
+      bgColor = Colors.grey;
+    }
+
     return GestureDetector(
-      onTap: () {
-        if (asset['status'] == 'Available') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StudentRequestForm(asset: asset),
+      onTap: isClickable
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StudentRequestForm(asset: asset),
+                ),
+              );
+            }
+          : null,
+      child: Opacity(
+        opacity: isClickable ? 1.0 : 0.6,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
             ),
-          );
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: _getStatusColor(asset['status']),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          asset['status'],
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -188,17 +215,9 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     return Scaffold(
       backgroundColor: _scaffoldBgColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        automaticallyImplyLeading: false,
+        backgroundColor: Color(0xFF1F1F1F),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const StudentHomePage()),
-            );
-          },
-        ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -226,8 +245,6 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
           ],
         ),
       ),
-
-      //เพิ่มส่วนแสดงสถานะโหลดข้อมูล
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : assets.isEmpty
@@ -242,97 +259,73 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
               itemCount: assets.length,
               itemBuilder: (context, index) {
                 final asset = assets[index];
-                final bool isAvailable = asset['status'] == 'Available';
-
-                return GestureDetector(
-                  onTapDown: isAvailable
-                      ? (_) => setState(() => _tappedIndex = index)
-                      : null,
-                  onTapUp: isAvailable
-                      ? (_) => setState(() => _tappedIndex = null)
-                      : null,
-                  onTapCancel: isAvailable
-                      ? () => setState(() => _tappedIndex = null)
-                      : null,
-                  onTap: isAvailable
-                      ? () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  StudentRequestForm(asset: asset),
+                return AnimatedScale(
+                  scale: 1.0,
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  child: Opacity(
+                    opacity: asset['status'] == 'Available' ? 1.0 : 0.6,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _getCardBackgroundColor(asset),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.4),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 100,
+                            height: 100,
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              image: asset['image'] != null
+                                  ? DecorationImage(
+                                      image: AssetImage(asset['image']),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
                             ),
-                          );
-                        }
-                      : null,
-                  child: AnimatedScale(
-                    scale: _tappedIndex == index ? 0.97 : 1.0,
-                    duration: const Duration(milliseconds: 150),
-                    curve: Curves.easeOut,
-                    child: Opacity(
-                      opacity: isAvailable ? 1.0 : 0.6,
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 14),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: _darkCardColor,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.4),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 100,
-                              height: 100,
-                              clipBehavior: Clip.antiAlias,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
-                                image: asset['image'] != null
-                                    ? DecorationImage(
-                                        image: AssetImage(asset['image']),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "${(index + 1).toString().padLeft(2, '0')} : ${asset['name']}",
-                                    style: const TextStyle(
-                                      color: _accentColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "${(index + 1).toString().padLeft(2, '0')} : ${asset['name']}",
+                                  style: const TextStyle(
+                                    color: _accentColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    "Description: ${asset['description']}",
-                                    style: const TextStyle(
-                                      color: _lightTextColor,
-                                      fontSize: 13,
-                                    ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "Description: ${asset['description']}",
+                                  style: const TextStyle(
+                                    color: _lightTextColor,
+                                    fontSize: 13,
                                   ),
-                                  const SizedBox(height: 14),
-                                  Align(
-                                    alignment: Alignment.bottomRight,
-                                    child: _buildAvailableChip(asset),
-                                  ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(height: 14),
+                                Align(
+                                  alignment: Alignment.bottomRight,
+                                  child: _buildAvailableChip(asset),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -358,13 +351,13 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
             case 2:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => CancelStatusScreen()),
+                MaterialPageRoute(builder: (_) => const CancelStatusScreen()),
               );
               break;
             case 3:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => HistoryScreen()),
+                MaterialPageRoute(builder: (_) => const HistoryScreen()),
               );
               break;
           }

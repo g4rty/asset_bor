@@ -1,8 +1,15 @@
 import 'dart:convert';
+import 'package:asset_bor/student/cancel_status_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../config.dart';
+import 'package:intl/intl.dart';
+import 'student_home_page.dart';
+import 'student_assets_list.dart';
+import 'cancel_status_screen.dart';
+import 'history_screen.dart';
 
-import '../../auth_storage.dart'; // ✅ ใช้เพื่อดึง user id ที่ login อยู่
+import '../../auth_storage.dart';
 
 class StudentRequestForm extends StatefulWidget {
   final Map<String, dynamic> asset;
@@ -25,18 +32,15 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
   Future<void> _submitRequest() async {
     final reason = _objectiveController.text.trim();
     final assetId = widget.asset['id'] ?? widget.asset['asset_id'];
-    final borrowerId = await AuthStorage.getUserId(); //ดึง user_id จาก storage
+    final borrowerId = await AuthStorage.getUserId();
 
-    if (reason.isEmpty) {
+    if (reason.isEmpty || borrowerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter an objective.')),
-      );
-      return;
-    }
-
-    if (borrowerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not found, please log in again.')),
+        const SnackBar(
+          content: Text(
+            'Please enter an objective and make sure you are logged in.',
+          ),
+        ),
       );
       return;
     }
@@ -45,13 +49,13 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
 
     try {
       final now = DateTime.now();
-      final borrowDate =
-          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-      final returnDate =
-          "${now.year}-${now.month.toString().padLeft(2, '0')}-${(now.day + 1).toString().padLeft(2, '0')}";
+      final tomorrow = now.add(const Duration(days: 1));
+
+      final borrowDate = DateFormat('yyyy-MM-dd').format(now);
+      final returnDate = DateFormat('yyyy-MM-dd').format(tomorrow);
 
       final response = await http.post(
-        Uri.parse('http://10.0.0.74:3000/api/borrow'),
+        Uri.parse('${AppConfig.baseUrl}/api/borrow'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'asset_id': assetId,
@@ -63,29 +67,85 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
       );
 
       if (response.statusCode == 200) {
-        Navigator.pop(context);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CancelStatusScreen()),
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Borrow request submitted successfully!'),
+            backgroundColor: Colors.greenAccent,
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.black),
+                SizedBox(width: 10),
+                Text(
+                  'Borrow request submitted successfully!',
+                  style: TextStyle(color: Colors.black),
+                ),
+              ],
+            ),
           ),
         );
       } else {
-        print('❌ Server Error: ${response.body}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit request: ${response.body}')),
-        );
+        try {
+          final Map<String, dynamic> data = jsonDecode(response.body);
+          final msg = data['error'] ?? 'Failed to submit request';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.amberAccent,
+              content: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.black),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      msg,
+                      style: const TextStyle(color: Colors.black),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } catch (_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.redAccent,
+              content: Row(
+                children: [
+                  Icon(Icons.error, color: Colors.white),
+                  SizedBox(width: 10),
+                  Text('Failed to submit request'),
+                ],
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
-      print('❌ Error: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error submitting request: $e')));
+      print('Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Error submitting request: $e',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  //ยืนยันก่อนส่ง
   void _showConfirmDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -107,8 +167,11 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
               ),
             ),
             onPressed: () {
-              Navigator.pop(context);
-              _submitRequest(); //เรียกส่งคำขอยืมจริง
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const CancelStatusScreen()),
+              );
+              _submitRequest();
             },
             child: const Text('Confirm', style: TextStyle(color: Colors.black)),
           ),
@@ -132,16 +195,38 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
   Widget build(BuildContext context) {
     final asset = widget.asset;
 
+    final now = DateTime.now();
+    final tomorrow = now.add(const Duration(days: 1));
+
+    String formatDate(DateTime date) {
+      const months = [
+        '',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${date.day} ${months[date.month]} ${date.year % 100}';
+    }
+
     return Scaffold(
       backgroundColor: _scaffoldBg,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
           'Request Form',
           style: TextStyle(color: Colors.white),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -192,21 +277,35 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      asset['name'] ?? 'Unknown Asset',
+                      'Request ${asset['id'] ?? asset['asset_id']} : ${asset['name'] ?? "Unknown"}',
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
+                        color: Color(0xFFD4FF00),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
+
                     const SizedBox(height: 6),
-                    const Text(
-                      "Borrow Date: Today — Return Tomorrow",
-                      style: TextStyle(
+
+                    Text(
+                      'Item: ${asset['name'] ?? "Unknown"}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    Text(
+                      "Borrow Date: ${formatDate(now)} — Return: ${formatDate(tomorrow)}",
+                      style: const TextStyle(
                         color: Colors.white70,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
                     const SizedBox(height: 14),
                     const Text(
                       "Objective",
