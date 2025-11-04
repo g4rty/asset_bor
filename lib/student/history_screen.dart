@@ -38,7 +38,9 @@ class BorrowHistory {
       if (d == null || d.isEmpty) return '-';
 
       try {
-        final dt = DateTime.parse(d);
+        // แปลงเวลาให้เป็น local time (จาก database)
+        final dt = DateTime.parse(d).toLocal();
+
         const months = [
           '',
           'Jan',
@@ -54,7 +56,16 @@ class BorrowHistory {
           'Nov',
           'Dec',
         ];
-        return '${dt.day.toString().padLeft(2, '0')} ${months[dt.month]} ${dt.year % 100}';
+
+        // ❌ ลบส่วนที่แทนด้วยเวลาปัจจุบันออกไป
+        // ✅ ใช้เวลาจาก database ตรง ๆ
+        final datePart =
+            '${dt.day.toString().padLeft(2, '0')} ${months[dt.month]} ${dt.year % 100}';
+        final timePart =
+            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+
+        // แสดงทั้งวันที่และเวลา (HH:mm)
+        return '$datePart · $timePart';
       } catch (e) {
         return '-';
       }
