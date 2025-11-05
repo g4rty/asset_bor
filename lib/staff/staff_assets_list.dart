@@ -192,9 +192,12 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
     final status = asset['asset_status'] ?? 'Unknown';
     final desc = asset['description'] ?? '';
     final imageFile = asset['image'] ?? '';
-    final imageUrl = imageFile.isNotEmpty
-        ? 'http://192.168.1.100:3000/uploads/$imageFile'
-        : '';
+    final isUploadFile = imageFile.contains('-'); // ไฟล์จาก upload
+
+    // กำหนด imageUrl สำหรับส่งไป EditAssetPage
+    final imageUrl = isUploadFile
+        ? 'http://192.168.1.100:3000/uploads/$imageFile' // ไฟล์จาก upload
+        : 'assets/images/$imageFile'; // ไฟล์จาก assets
 
     Color getStatusColor() {
       switch (status) {
@@ -229,24 +232,25 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Center(
-                          child: Icon(
-                            Icons.broken_image,
-                            color: Colors.white70,
-                          ),
-                        );
-                      },
-                    )
-                  : const Center(
+              child: imageFile.isEmpty
+                  ? const Center(
                       child: Icon(
                         Icons.image_not_supported,
                         color: Colors.white54,
                       ),
+                    )
+                  : isUploadFile
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.broken_image, color: Colors.white70),
+                    )
+                  : Image.asset(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.broken_image, color: Colors.white70),
                     ),
             ),
           ),
@@ -281,14 +285,13 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                   children: [
                     // 🔸 Status
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
+                      height: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       decoration: BoxDecoration(
                         color: getStatusColor(),
                         borderRadius: BorderRadius.circular(20),
                       ),
+                      alignment: Alignment.center,
                       child: Text(
                         status,
                         style: const TextStyle(
@@ -301,40 +304,39 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                     const SizedBox(width: 8),
 
                     // 🔸 ปุ่ม Edit
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFF69E),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 6,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      onPressed: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditAssetPage(
-                              assetName: name,
-                              description: desc,
-                              status: status,
-                              imageUrl: imageUrl,
-                              index: index,
-                            ),
+                    SizedBox(
+                      height: 36,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFF69E),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                        );
+                        ),
+                        onPressed: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditAssetPage(
+                                assetId: asset['asset_id'],
+                                assetName: name,
+                                description: desc,
+                                status: status,
+                                imageUrl: imageUrl,
+                              ),
+                            ),
+                          );
 
-                        if (result != null) {
-                          setState(() {
-                            _assetsFuture = fetchAssets();
-                          });
-                        }
-                      },
-                      child: const Text(
-                        'Edit',
-                        style: TextStyle(color: Colors.black),
+                          if (result != null) {
+                            setState(() {
+                              _assetsFuture = fetchAssets();
+                            });
+                          }
+                        },
+                        child: const Text(
+                          'Edit',
+                          style: TextStyle(color: Colors.black),
+                        ),
                       ),
                     ),
                   ],
