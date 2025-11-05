@@ -14,6 +14,7 @@ class BorrowHistory {
   final String approver;
   final String borrowDate;
   final String returnDate;
+  final String requestDate;
   final String objective;
   final String status;
   final String imagePath;
@@ -25,6 +26,7 @@ class BorrowHistory {
     required this.borrowId,
     required this.approver,
     required this.borrowDate,
+    required this.requestDate,
     required this.returnDate,
     required this.objective,
     required this.status,
@@ -34,39 +36,14 @@ class BorrowHistory {
   });
 
   factory BorrowHistory.fromJson(Map<String, dynamic> j) {
-    String formatDate(String? d) {
-      if (d == null || d.isEmpty) return '-';
-
-      try {
-        final dt = DateTime.parse(d);
-        const months = [
-          '',
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
-        ];
-        return '${dt.day.toString().padLeft(2, '0')} ${months[dt.month]} ${dt.year % 100}';
-      } catch (e) {
-        return '-';
-      }
-    }
-
     return BorrowHistory(
       item: j['asset_name'] ?? '-',
       borrowId: j['request_id'].toString(),
       approver: j['approver_name'] ?? '-',
-      borrowDate: formatDate(j['borrow_date']),
-      returnDate: formatDate(j['return_date']),
-      actualReturnDate: formatDate(j['returned_date']),
+      requestDate: j['request_date'] ?? '-',
+      borrowDate: j['borrow_date'] ?? '-',
+      returnDate: j['return_date'] ?? '-',
+      actualReturnDate: j['returned_date'] ?? '-',
       objective: j['objective'] ?? '-',
       status: j['decision_status'] ?? '-',
       rejectionReason: j['rejection_reason'],
@@ -86,9 +63,50 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   int _selectedIndex = 3;
-  bool _loggingOut = false;
+  bool _loggingOutNow = false;
 
   late Future<List<BorrowHistory>> _future;
+
+  String _formatDateOnly(String dateTime) {
+    if (dateTime == '-' || dateTime.isEmpty) return '-';
+
+    try {
+      final dt = DateTime.parse(dateTime).toLocal();
+      return '${dt.day.toString().padLeft(2, '0')} ${_monthShort(dt.month)} ${dt.year % 100}';
+    } catch (_) {
+      return '-';
+    }
+  }
+
+  String _formatTimeOnly(String dateTime) {
+    if (dateTime == '-' || dateTime.isEmpty) return '';
+
+    try {
+      final dt = DateTime.parse(dateTime).toLocal();
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _monthShort(int m) {
+    const months = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return months[m];
+  }
 
   @override
   void initState() {
@@ -121,9 +139,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   void handleNavbar(int index) {
     if (_selectedIndex == index) return;
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
 
     switch (index) {
       case 0:
@@ -149,72 +165,43 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  bool _loggingOutNow = false;
-
   Future<void> _confirmAndLogout() async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1F1F1F),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Logout',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        title: const Text('Logout', style: TextStyle(color: Colors.white)),
         content: const Text(
           'Are you sure you want to log out?',
-          style: TextStyle(color: Color(0xFFB0B0B0), fontSize: 15, height: 1.4),
+          style: TextStyle(color: Color(0xFFB0B0B0)),
         ),
         actions: [
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Color(0xFF424242)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            ),
-            onPressed: () => Navigator.of(context).pop(false),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 210, 245, 160),
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Logout'),
           ),
         ],
       ),
     );
 
-    if (ok != true) return;
-    await _logout();
+    if (ok == true) _logout();
   }
 
   Future<void> _logout() async {
     if (_loggingOutNow) return;
     setState(() => _loggingOutNow = true);
-    try {
-      await AuthStorage.clearUserId();
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-        (route) => false,
-      );
-    } finally {
-      if (mounted) setState(() => _loggingOutNow = false);
-    }
+    await AuthStorage.clearUserId();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
+    setState(() => _loggingOutNow = false);
   }
 
   @override
@@ -226,29 +213,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
         backgroundColor: const Color(0xFF1F1F1F),
         centerTitle: true,
         elevation: 0,
-        leading: null,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               'History',
               style: TextStyle(
-                fontWeight: FontWeight.bold,
                 color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
             ),
             _loggingOutNow
-                ? const SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                ? const CircularProgressIndicator(color: Colors.white)
                 : IconButton(
-                    icon: const Icon(
-                      Icons.logout,
-                      color: Colors.white,
-                      size: 26,
-                    ),
+                    icon: const Icon(Icons.logout, color: Colors.white),
                     onPressed: _confirmAndLogout,
                   ),
           ],
@@ -285,9 +263,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
           return ListView.builder(
             itemCount: history.length,
-            itemBuilder: (context, index) {
-              return _buildHistoryCard(history[index]);
-            },
+            itemBuilder: (_, i) => _buildHistoryCard(history[i]),
           );
         },
       ),
@@ -331,11 +307,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         color: const Color(0xFF434343),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 10),
         ],
       ),
       child: Row(
@@ -363,27 +335,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
+
                 Text(
-                  'Date: ${item.borrowDate} – ${item.returnDate}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  'Date: ${_formatDateOnly(item.borrowDate)} · '
+                  '${_formatTimeOnly(item.requestDate)} - '
+                  '${_formatDateOnly(item.returnDate)} · '
+                  '${_formatTimeOnly(item.requestDate)}',
+                  style: const TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 6),
+
                 Text(
                   'Approve By: ${item.approver}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  style: const TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 6),
+
                 Text(
                   'Objective: ${item.objective}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  style: const TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 6),
+
                 Text(
                   'Actual Return: ${item.actualReturnDate == '-' ? '-' : item.actualReturnDate}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  style: const TextStyle(color: Colors.white70),
                 ),
-
                 const SizedBox(height: 12),
+
                 Align(
                   alignment: Alignment.bottomRight,
                   child: Container(
@@ -399,7 +378,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       statusText,
                       style: TextStyle(
                         color: textColor,
-                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
