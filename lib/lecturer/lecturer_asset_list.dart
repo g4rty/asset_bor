@@ -11,25 +11,6 @@ import 'widgets/lecturer_logout.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class AssetItem {
-  final int id;
-  final String name;
-  final String status;
-  final String image;
-  AssetItem({
-    required this.id,
-    required this.name,
-    required this.status,
-    required this.image,
-  });
-  factory AssetItem.fromJson(Map<String, dynamic> j) => AssetItem(
-    id: j['asset_id'] as int,
-    name: j['asset_name'] as String,
-    status: j['asset_status'] as String,
-    image: (j['image'] as String?) ?? '',
-  );
-}
-
 class LecturerAssetList extends StatefulWidget {
   const LecturerAssetList({super.key});
   @override
@@ -37,7 +18,7 @@ class LecturerAssetList extends StatefulWidget {
 }
 
 class _LecturerAssetListState extends State<LecturerAssetList> {
-  int index = 1; 
+  int index = 1; // start on second tab
 
   Future<List<AssetItem>> _fetchAssets() async {
     final userId = await AuthStorage.getUserId();
@@ -110,6 +91,26 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
     );
   }
 }
+
+class AssetItem {
+  final int id;
+  final String name;
+  final String status;
+  final String image;
+  AssetItem({
+    required this.id,
+    required this.name,
+    required this.status,
+    required this.image,
+  });
+  factory AssetItem.fromJson(Map<String, dynamic> j) => AssetItem(
+    id: j['asset_id'] as int,
+    name: j['asset_name'] as String,
+    status: j['asset_status'] as String,
+    image: (j['image'] as String?) ?? '',
+  );
+}
+
 class AssetListView extends StatelessWidget {
   const AssetListView({super.key, required this.fetch});
   final Future<List<AssetItem>> Function() fetch;
@@ -164,12 +165,12 @@ class AssetListView extends StatelessWidget {
 
 class AssetCard extends StatelessWidget {
   const AssetCard({super.key, required this.index, required this.item});
-  final int index; 
+  final int index; // 1-based display number
   final AssetItem item;
 
   static const Color _card = Color(0xFF3A3A3C);
   static const Color _imgBg = Color(0xFF2C2C2E);
-  static const Color _title = Color(0xFFD4FF00); 
+  static const Color _title = Color(0xFFD4FF00); // lime
 
   @override
   Widget build(BuildContext context) {
@@ -198,6 +199,7 @@ class AssetCard extends StatelessWidget {
           ),
 
           const SizedBox(width: 16),
+          // text + chip
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,6 +214,7 @@ class AssetCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
+                  // replace when backend returns description
                   'Description unavailable.',
                   style: TextStyle(
                     color: Color(0xFFB0B0B0),
