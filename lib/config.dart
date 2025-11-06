@@ -9,5 +9,5 @@
 
 // pub 
 class AppConfig {
-  static const String baseUrl = 'http://26.208.151.40:3000';
+  static const String baseUrl = 'http://localhost:3000';
 }
