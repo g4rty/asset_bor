@@ -421,12 +421,17 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _currentStatus?.toUpperCase() ?? "",
+                            _currentStatus == 'Borrowed'
+                                ? 'Borrowing'
+                                : _currentStatus == 'approved'
+                                ? 'Borrowing'
+                                : _currentStatus?.toUpperCase() ?? "",
                             style: TextStyle(
                               color: _currentStatus == 'pending'
                                   ? Colors.yellow
-                                  : _currentStatus == 'approved'
-                                  ? Colors.greenAccent
+                                  : _currentStatus == 'Borrowed' ||
+                                        _currentStatus == 'approved'
+                                  ? Colors.lightBlueAccent
                                   : _currentStatus == 'cancelled'
                                   ? Colors.redAccent
                                   : Colors.white,

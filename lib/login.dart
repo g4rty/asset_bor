@@ -62,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
 
         Widget? destination;
         if (_role == 'lecturer') {
-          destination = const LecturerAssetList();
+          destination = const LecturerHomePage();
         } else if (_role == 'staff') {
           destination = const StaffHomePage();
         } else if (_role == 'student') {
