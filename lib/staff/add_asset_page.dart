@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
 class AddAssetPage extends StatefulWidget {
   const AddAssetPage({super.key});
@@ -13,8 +14,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   String _status = 'Available';
-  File? _imageFile; // เก็บภาพที่เลือก
-
+  File? _imageFile;
   final ImagePicker _picker = ImagePicker();
 
   // เลือกรูปจาก gallery
@@ -29,7 +29,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
     }
   }
 
-  // แสดง popup ยืนยัน
+  // แสดง popup ยืนยันและอัปโหลดไป backend
   void _showConfirmDialog() {
     if (_nameController.text.isEmpty || _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(
@@ -61,20 +61,48 @@ class _AddAssetPageState extends State<AddAssetPage> {
                   vertical: 8,
                 ),
               ),
-              onPressed: () {
-                final newAsset = {
-                  'name': _nameController.text,
-                  'description': _descriptionController.text,
-                  'status': _status,
-                  'statusColor': _status == 'Available'
-                      ? const Color(0xFFD8FFA3)
-                      : _status == 'Borrowed'
-                      ? const Color(0xFF81E6FF)
-                      : const Color.fromARGB(255, 185, 185, 185),
-                  'imageFile': _imageFile, // File?
-                };
+              onPressed: () async {
                 Navigator.pop(context); // ปิด popup
-                Navigator.pop(context, newAsset); // ส่ง asset กลับ
+
+                final uri = Uri.parse('http://192.168.1.100:3000/api/assets');
+                final request = http.MultipartRequest('POST', uri);
+                request.fields['name'] = _nameController.text;
+                request.fields['description'] = _descriptionController.text;
+                request.fields['status'] = _status;
+                request.fields['quantity'] = '1';
+
+                if (_imageFile != null) {
+                  request.files.add(
+                    await http.MultipartFile.fromPath(
+                      'image',
+                      _imageFile!.path,
+                    ),
+                  );
+                }
+
+                try {
+                  final response = await request.send();
+                  if (response.statusCode == 200) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Asset added successfully!'),
+                      ),
+                    );
+                    Navigator.pop(context, true);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Failed to add asset: ${response.statusCode}',
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
               },
               child: const Text(
                 'Add',
