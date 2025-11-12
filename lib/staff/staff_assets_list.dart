@@ -6,6 +6,7 @@ import 'package:asset_bor/staff/edit_asset_page.dart';
 import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:asset_bor/staff/staff_history_page.dart';
 import 'package:asset_bor/staff/staff_home_page.dart';
+import 'package:asset_bor/shared/logout.dart';
 
 class StaffAssetsList extends StatefulWidget {
   const StaffAssetsList({super.key});
@@ -160,6 +161,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                           label: const Text('Add'),
                           icon: const Icon(Icons.create_new_folder_sharp),
                         ),
+                        const LogoutButton(iconColor: Colors.white),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -323,6 +325,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                                 description: desc,
                                 status: status,
                                 imageUrl: imageUrl,
+                                quantity: asset['quantity'],
                               ),
                             ),
                           );

@@ -7,6 +7,7 @@ class EditAssetPage extends StatefulWidget {
   final int assetId;
   final String assetName;
   final String description;
+  final int quantity;
   final String status;
   final String? imageUrl;
 
@@ -15,6 +16,7 @@ class EditAssetPage extends StatefulWidget {
     required this.assetId,
     required this.assetName,
     required this.description,
+    required this.quantity,
     required this.status,
     this.imageUrl,
   });
@@ -26,6 +28,7 @@ class EditAssetPage extends StatefulWidget {
 class _EditAssetPageState extends State<EditAssetPage> {
   late TextEditingController _nameController;
   late TextEditingController _descController;
+  late TextEditingController _quantityController;
   late String _status;
   File? _imageFile;
   bool _isSaving = false;
@@ -35,6 +38,9 @@ class _EditAssetPageState extends State<EditAssetPage> {
     super.initState();
     _nameController = TextEditingController(text: widget.assetName);
     _descController = TextEditingController(text: widget.description);
+    _quantityController = TextEditingController(
+      text: widget.quantity.toString(),
+    );
     _status = widget.status;
   }
 
@@ -51,13 +57,20 @@ class _EditAssetPageState extends State<EditAssetPage> {
   Future<void> _saveAsset() async {
     setState(() => _isSaving = true);
 
+    int qty = int.tryParse(_quantityController.text) ?? 0;
+
+    // ถ้า quantity = 0 ให้ status เป็น Borrowed
+    String statusToSend = qty == 0 ? 'Borrowed' : _status;
+
     final uri = Uri.parse(
       'http://192.168.1.100:3000/api/assets/${widget.assetId}',
     );
     var request = http.MultipartRequest('PUT', uri);
+
     request.fields['name'] = _nameController.text;
     request.fields['description'] = _descController.text;
-    request.fields['status'] = _status;
+    request.fields['quantity'] = _quantityController.text;
+    request.fields['status'] = statusToSend;
 
     if (_imageFile != null) {
       request.files.add(
@@ -124,7 +137,6 @@ class _EditAssetPageState extends State<EditAssetPage> {
     }
   }
 
-  // ยืนยันการลบ
   void _showDeletePopup() {
     showDialog(
       context: context,
@@ -158,7 +170,6 @@ class _EditAssetPageState extends State<EditAssetPage> {
     );
   }
 
-  // แสดงรูป (รองรับทั้ง asset และ upload)
   Widget _buildImageWidget() {
     ImageProvider? imageProvider;
 
@@ -239,6 +250,24 @@ class _EditAssetPageState extends State<EditAssetPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  TextField(
+                    controller: _quantityController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Quantity',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      filled: true,
+                      fillColor: Colors.white10,
+                    ),
+                    onChanged: (val) {
+                      int qty = int.tryParse(val) ?? 0;
+                      setState(() {
+                        _status = qty == 0 ? 'Borrowed' : _status;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: _status,
                     dropdownColor: Colors.grey[900],
@@ -256,7 +285,12 @@ class _EditAssetPageState extends State<EditAssetPage> {
                         child: Text('Disable'),
                       ),
                     ],
-                    onChanged: (value) => setState(() => _status = value!),
+                    onChanged: (value) {
+                      int qty = int.tryParse(_quantityController.text) ?? 0;
+                      if (qty == 0)
+                        return; // บังคับ status เป็น Borrowed ถ้า qty=0
+                      setState(() => _status = value!);
+                    },
                     decoration: const InputDecoration(
                       labelText: 'Status',
                       labelStyle: TextStyle(color: Colors.white70),
