@@ -19,12 +19,14 @@ class LecturerHistory extends StatefulWidget {
 }
 
 class _LecturerHistoryState extends State<LecturerHistory> {
-  late Future<List<HistoryItem>> _future;
+  bool _isLoading = true;
+  String? _error;
+  List<HistoryItem> _items = const [];
 
   @override
   void initState() {
     super.initState();
-    _future = _fetchHistory();
+    _loadHistory();
   }
 
   @override
@@ -69,51 +71,73 @@ class _LecturerHistoryState extends State<LecturerHistory> {
   }
 
   Widget _buildBody() {
-    return FutureBuilder<List<HistoryItem>>(
-      future: _future,
-      builder: (context, s) {
-        if (s.connectionState != ConnectionState.done) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
-          );
-        }
-        if (s.hasError) {
-          return Center(
-            child: Text(
-              'Error: ${s.error}',
-              style: const TextStyle(color: Colors.white),
-            ),
-          );
-        }
-        final rows = s.data!;
-        if (rows.isEmpty) {
-          return const Center(
-            child: Text(
-              'No history',
-              style: TextStyle(color: Colors.white70),
-            ),
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24 + 84),
-          itemCount: rows.length + 1,
-          separatorBuilder: (_, __) => const SizedBox(height: 20),
-          itemBuilder: (context, i) {
-            if (i == 0) {
-              return const Text(
-                'History',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              );
-            }
-            return _HistoryCard(item: rows[i - 1]);
-          },
-        );
-      },
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
+      );
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Error: $_error', style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: () => _loadHistory(), child: const Text('Try again')),
+          ],
+        ),
+      );
+    }
+    if (_items.isEmpty) {
+      return const Center(
+        child: Text('No history', style: TextStyle(color: Colors.white70)),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _loadHistory,
+      backgroundColor: const Color(0xFF1F1F1F),
+      color: const Color(0xFFD4FF00),
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 24 + 84),
+        itemCount: _items.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(height: 20),
+        itemBuilder: (context, i) {
+          if (i == 0) {
+            return const Text(
+              'History',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            );
+          }
+          return _HistoryCard(item: _items[i - 1]);
+        },
+      ),
     );
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final rows = await _fetchHistory();
+      if (!mounted) return;
+      setState(() {
+        _items = rows;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = '$e';
+        _isLoading = false;
+      });
+    }
   }
 
   Future<List<HistoryItem>> _fetchHistory() async {
@@ -146,6 +170,9 @@ class _LecturerHistoryState extends State<LecturerHistory> {
 
 class HistoryItem {
   final int requestId;
+  final int? handoverById;
+  final int? receiverId;
+  final String? handoverByName;
   final String decisionStatus; // 'approved' | 'rejected'
   final String? rejectionReason;
   final String assetName;
@@ -158,6 +185,9 @@ class HistoryItem {
     required this.decisionStatus,
     required this.assetName,
     required this.borrowerName,
+    this.handoverById,
+    this.receiverId,
+    this.handoverByName,
     this.rejectionReason,
     this.assetImage,
     this.approvalDate,
@@ -168,6 +198,9 @@ class HistoryItem {
 
   factory HistoryItem.fromJson(Map<String, dynamic> j) => HistoryItem(
     requestId: j['request_id'] as int,
+    handoverById: _int(j['handover_by_id']),
+    receiverId: _int(j['receiver_id']),
+    handoverByName: j['handover_by_name'] as String?,
     decisionStatus: j['decision_status'] as String,
     rejectionReason: j['rejection_reason'] as String?,
     assetName: j['asset_name'] as String,
@@ -182,6 +215,13 @@ class HistoryItem {
   static DateTime? _dt(dynamic s) => (s == null || (s is String && s.isEmpty))
       ? null
       : DateTime.parse(s as String);
+
+  static int? _int(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
 }
 
 /* ---------- UI card ---------- */
@@ -208,15 +248,10 @@ class _HistoryCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: Container(
-              width: 96,
-              height: 96,
+              width: 110,
+              height: 110,
               color: _imgBg,
-              child: item.assetImage != null && item.assetImage!.isNotEmpty
-                  ? Image.asset(
-                      'assets/images/${item.assetImage!}',
-                      fit: BoxFit.cover,
-                    )
-                  : const Icon(Icons.image, color: Colors.white24, size: 36),
+              child: _buildImage(),
             ),
           ),
 
@@ -237,11 +272,11 @@ class _HistoryCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 _line('Borrower', item.borrowerName),
                 _line('Date', _range(item.borrowDate, item.returnDate)),
-                _line('Handout by', item.approvalDate != null ? 'Staff' : '-'),
-                _line(
-                  'Returned to',
-                  item.returnedDate != null ? item.borrowerName : '-',
-                ),
+                _line('Handout date', _fmtDate(item.approvalDate)),
+                _line('Handed out by', item.handoverByName ?? '-'),
+                if (item.returnedDate != null)
+                  _line('Actual return', _fmtDate(item.returnedDate)),
+                _line('Returned by', item.returnedDate != null ? item.borrowerName : '-'),
                 _line(
                   'Objective',
                   'Practice',
@@ -256,30 +291,41 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 
-  static Widget _line(String k, String v) => Padding(
-    padding: const EdgeInsets.only(bottom: 4),
-    child: RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: '$k : ',
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-          TextSpan(
-            text: v,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  static String _range(DateTime? a, DateTime? b) {
-    String f(DateTime? d) => d == null
-        ? '-'
-        : '${d.day.toString().padLeft(2, '0')} ${_mon[d.month]} ${d.year % 100}';
-    return '${f(a)} - ${f(b)}';
+  Widget _buildImage() {
+    final img = item.assetImage;
+    if (img == null || img.isEmpty) {
+      return const Icon(Icons.image, color: Colors.white24, size: 36);
+    }
+    if (img.startsWith('http')) {
+      return Image.network(img, fit: BoxFit.cover);
+    }
+    return Image.asset('assets/images/$img', fit: BoxFit.cover);
   }
+
+  static Widget _line(String k, String v) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: '$k : ',
+                style: const TextStyle(color: Colors.white70, fontSize: 15),
+              ),
+              TextSpan(
+                text: v,
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  static String _range(DateTime? a, DateTime? b) =>
+      '${_fmtDate(a)} - ${_fmtDate(b)}';
+
+  static String _fmtDate(DateTime? d) => d == null
+      ? '-'
+      : '${d.day.toString().padLeft(2, '0')} ${_mon[d.month]} ${d.year % 100}';
 
   static const _mon = [
     '',
@@ -305,12 +351,11 @@ class _HistoryCard extends StatelessWidget {
         'Rejected: ${x.rejectionReason ?? '-'}',
       );
     }
-    // Approved and returned → green with date
     if (x.returnedDate != null) {
-      final d =
-          '${x.returnedDate!.day.toString().padLeft(2, '0')} '
-          '${_mon[x.returnedDate!.month]} ${x.returnedDate!.year % 100}';
-      return _chip(const Color(0xFFDFFFAE), 'Returned: $d');
+      return _chip(const Color(0xFFDFFFAE), 'Returned: ${_fmtDate(x.returnedDate)}');
+    }
+    if (x.handoverById != null && x.receiverId != null) {
+      return _chip(const Color(0xFFDFFFAE), 'Returned');
     }
     // Approved but not returned → blue with borrower
     return _chip(const Color(0xFFAEE4FF), 'Borrowing: ${x.borrowerName}');
