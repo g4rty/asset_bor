@@ -1,8 +1,5 @@
 import 'package:asset_bor/staff/staff_assets_list.dart';
 import 'package:asset_bor/staff/staff_handin-out_page.dart';
-import 'package:asset_bor/staff/staff_home_page.dart';
-import 'package:asset_bor/shared/logout.dart';
-import 'package:asset_bor/shared/navbar.dart';
 import 'package:flutter/material.dart';
 
 class StaffHistoryPage extends StatefulWidget {
@@ -18,29 +15,10 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
   final Color cardBgColor = const Color(0xFF3A3A3A);
   final Color accentGreen = const Color(0xFFB8FF8A);
   final Color accentRed = const Color(0xFFFF8080);
+  final Color _accentColor = const Color(0xFFD8FFA3);
 
   // ------------------- NAV STATE -------------------
-  final int _selectedIndex = 3; // หน้านี้คือ History
-
-  void handleNavTap(int index) {
-    if (index == _selectedIndex) return;
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const StaffHomePage()),
-      );
-    } else if (index == 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const StaffAssetsList()),
-      );
-    } else if (index == 2) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const StaffHandPage()),
-      );
-    }
-  }
+  int _selectedIndex = 3; // หน้านี้คือ History
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +31,6 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
         child: AppBar(
           backgroundColor: scaffoldBgColor,
           elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
           centerTitle: false,
           titleSpacing: 16,
           title: const Text(
@@ -64,9 +41,6 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          actions: const [
-            LogoutButton(iconColor: Colors.white),
-          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(16),
             child: Container(
@@ -84,7 +58,7 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
 
       // ------------------- BODY -------------------
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24 + 84),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         children: [
           HistoryCard(
             cardBgColor: cardBgColor,
@@ -138,11 +112,76 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
             badgeColor: Color(0xFF54D7FF),
             textColor: Colors.black,
           ),
+          const SizedBox(height: 80),
         ],
       ),
 
       // ------------------- NAVBAR -------------------
-      bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavTap),
+      bottomNavigationBar: SafeArea(top: false, child: _buildBottomNavBar()),
+    );
+  }
+
+  // ------------------- BOTTOM NAV BAR -------------------
+  Widget _buildBottomNavBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+      color: scaffoldBgColor,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildNavItem(icon: Icons.home, index: 0),
+          _buildNavItem(icon: Icons.shopping_bag_outlined, index: 1),
+          _buildNavItem(icon: Icons.list_alt_outlined, index: 2),
+          _buildNavItem(icon: Icons.history, index: 3),
+        ],
+      ),
+    );
+  }
+
+  // ------------------- EACH NAV ITEM -------------------
+  Widget _buildNavItem({required IconData icon, required int index}) {
+    final bool isSelected = _selectedIndex == index;
+
+    return GestureDetector(
+      onTap: () async {
+        setState(() => _selectedIndex = index);
+
+        //✅ ตรงนี้คือจุดที่จะเปลี่ยนหน้าเวลาจิ้ม tab
+        if (index == 0) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffHandPage()),
+          );
+        } else if (index == 1) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffAssetsList()),
+          );
+        } else if (index == 2) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffHandPage()),
+          );
+        } else if (index == 3) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
+          );
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isSelected ? _accentColor : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          color: isSelected ? Colors.black : Colors.white,
+          size: 26,
+        ),
+      ),
     );
   }
 }
