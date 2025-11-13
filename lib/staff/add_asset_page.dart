@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
 class AddAssetPage extends StatefulWidget {
   const AddAssetPage({super.key});
@@ -18,6 +19,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
 
   String _status = 'Available';
   File? _imageFile;
+  bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
 
   // Pick image from gallery
@@ -30,9 +32,55 @@ class _AddAssetPageState extends State<AddAssetPage> {
     }
   }
 
-  // แสดง popup ยืนยันและอัปโหลดไป backend
-  void _showConfirmDialog() {
-    if (_nameController.text.isEmpty || _descriptionController.text.isEmpty) {
+  // Upload asset data to backend
+  Future<void> _uploadAsset() async {
+    if (_nameController.text.isEmpty ||
+        _descriptionController.text.isEmpty ||
+        _quantityController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill out all fields')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final uri = Uri.parse(
+      'http://192.168.1.100:3000/api/assets',
+    ); // ⚠️ Replace with your backend URL
+    final request = http.MultipartRequest('POST', uri);
+
+    request.fields['name'] = _nameController.text;
+    request.fields['description'] = _descriptionController.text;
+    request.fields['status'] = _status;
+    request.fields['quantity'] = _quantityController.text;
+
+    if (_imageFile != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath('image', _imageFile!.path),
+      );
+    }
+
+    try {
+      final response = await request.send();
+      setState(() => _isLoading = false);
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✅ Asset added successfully')),
+          );
+          Navigator.pop(context, true);
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Failed to add (Code: ${response.statusCode})'),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -73,48 +121,9 @@ class _AddAssetPageState extends State<AddAssetPage> {
                   vertical: 8,
                 ),
               ),
-              onPressed: () async {
-                Navigator.pop(context); // ปิด popup
-
-                final uri = Uri.parse('http://192.168.1.100:3000/api/assets');
-                final request = http.MultipartRequest('POST', uri);
-                request.fields['name'] = _nameController.text;
-                request.fields['description'] = _descriptionController.text;
-                request.fields['status'] = _status;
-                request.fields['quantity'] = '1';
-
-                if (_imageFile != null) {
-                  request.files.add(
-                    await http.MultipartFile.fromPath(
-                      'image',
-                      _imageFile!.path,
-                    ),
-                  );
-                }
-
-                try {
-                  final response = await request.send();
-                  if (response.statusCode == 200) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Asset added successfully!'),
-                      ),
-                    );
-                    Navigator.pop(context, true);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Failed to add asset: ${response.statusCode}',
-                        ),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                }
+              onPressed: () {
+                Navigator.pop(context);
+                _uploadAsset();
               },
               child: const Text(
                 'Add',
