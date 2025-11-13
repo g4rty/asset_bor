@@ -2,6 +2,10 @@ import 'package:asset_bor/student/cancel_status_screen.dart';
 import 'package:flutter/material.dart';
 import 'student_home_page.dart';
 import 'student_assets_list.dart';
+import '../../auth_storage.dart';
+import '../../login.dart';
+import '../config.dart';
+import '../shared/logout.dart';
 
 class BorrowHistory {
   final String item;
@@ -112,6 +116,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             _buildNavItem(Icons.history, 3),
           ],
         ),
+        actions: const [LogoutButton(iconColor: Colors.white)],
       ),
     );
   }
