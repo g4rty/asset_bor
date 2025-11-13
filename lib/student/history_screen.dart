@@ -7,6 +7,7 @@ import 'student_assets_list.dart';
 import '../../auth_storage.dart';
 import '../../login.dart';
 import '../config.dart';
+import '../shared/logout.dart';
 
 class BorrowHistory {
   final String item;
@@ -66,7 +67,6 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   int _selectedIndex = 3;
-  bool _loggingOutNow = false;
 
   late Future<List<BorrowHistory>> _future;
 
@@ -168,45 +168,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Future<void> _confirmAndLogout() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1F1F1F),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Logout', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Are you sure you want to log out?',
-          style: TextStyle(color: Color(0xFFB0B0B0)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
-
-    if (ok == true) _logout();
-  }
-
-  Future<void> _logout() async {
-    if (_loggingOutNow) return;
-    setState(() => _loggingOutNow = true);
-    await AuthStorage.clearUserId();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-      (route) => false,
-    );
-    setState(() => _loggingOutNow = false);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -216,24 +177,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
         backgroundColor: const Color(0xFF1F1F1F),
         centerTitle: true,
         elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'History',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            _loggingOutNow
-                ? const CircularProgressIndicator(color: Colors.white)
-                : IconButton(
-                    icon: const Icon(Icons.logout, color: Colors.white),
-                    onPressed: _confirmAndLogout,
-                  ),
-          ],
+        title: const Text(
+          'History',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        actions: const [LogoutButton(iconColor: Colors.white)],
       ),
 
       body: FutureBuilder<List<BorrowHistory>>(
