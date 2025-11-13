@@ -239,7 +239,7 @@ class _HistoryCard extends StatelessWidget {
                 _line('Date', _range(item.borrowDate, item.returnDate)),
                 _line('Handout by', item.approvalDate != null ? 'Staff' : '-'),
                 _line(
-                  'Returned by',
+                  'Returned to',
                   item.returnedDate != null ? item.borrowerName : '-',
                 ),
                 _line(
