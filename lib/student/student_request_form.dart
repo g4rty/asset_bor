@@ -347,7 +347,7 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                             backgroundColor: _confirmColor,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 30,
-                              vertical: 12,
+                              vertical: 13,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),

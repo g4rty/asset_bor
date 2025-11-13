@@ -1,11 +1,9 @@
-import 'dart:convert';
+// หน้าแรกของ Staff (Dashboard)
+
+import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:asset_bor/shared/logout.dart';
-import '../config.dart'; // baseUrl
-import 'staff_assets_list.dart';
-import 'staff_handin-out_page.dart';
-import 'staff_history_page.dart';
+import 'package:asset_bor/staff/staff_history_page.dart';
+import 'package:asset_bor/staff/staff_assets_list.dart';
 
 class StaffHomePage extends StatefulWidget {
   const StaffHomePage({super.key});
@@ -21,25 +19,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
   final Color _scaffoldBgColor = const Color.fromARGB(255, 39, 39, 39);
   final Color _accentColor = const Color(0xFFD8FFA3);
 
-  @override
-  void initState() {
-    super.initState();
-    _future = _fetchCounts();
-  }
-
-  Future<_Counts> _fetchCounts() async {
-    try {
-      final res = await http.get(Uri.parse('${AppConfig.baseUrl}/counts'));
-      if (res.statusCode != 200) {
-        throw Exception('HTTP ${res.statusCode}: ${res.body}');
-      }
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
-      return _Counts.fromJson(data);
-    } catch (e) {
-      throw Exception('Failed to load counts: $e');
-    }
-  }
-
+  // 🔹 Bottom Navigation Bar
   Widget _buildBottomNavBar() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
@@ -78,6 +58,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
           );
         }
       },
+
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(10),
@@ -94,115 +75,84 @@ class _StaffHomePageState extends State<StaffHomePage> {
     );
   }
 
-  // 🔹 Dashboard body
-  Widget _buildDashboardBody(_Counts c) {
-    const background = Color(0xFF1F1F1F);
-    const accent = Color(0xFFD4FF00);
-    const availableColor = Color(0xFFB9FF66);
-    const borrowingColor = Color(0xFF7AD8FF);
-    const disabledColor = Color(0xFF6C6C70);
-    const pendingColor = Color(0xFFFFFF99);
+  // 🔹 Widget แสดงกราฟแท่ง
+  Widget _buildBarChart() {
+    final barHeights = [120.0, 80.0, 60.0, 100.0];
+    final barColors = [
+      const Color(0xFFB9FF9A),
+      const Color(0xFF9FD7FF),
+      const Color(0xFFAAAAAA),
+      const Color(0xFFFFF69E),
+    ];
+    final labels = ['Available', 'Borrowing', 'Disabled', 'Pending'];
 
-    return RefreshIndicator(
-      color: accent,
-      backgroundColor: background,
-      onRefresh: () async => setState(() => _future = _fetchCounts()),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return SizedBox(
+      height: 220,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: List.generate(barHeights.length, (i) {
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              const Text(
-                'Dashboard',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+              Container(
+                width: 28,
+                height: barHeights[i],
+                decoration: BoxDecoration(
+                  color: barColors[i],
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              const LogoutButton(iconColor: Colors.white),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: 60,
+                child: Text(
+                  labels[i],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 10),
+                ),
+              ),
             ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _buildChartBar('Available', c.availableUnits, availableColor),
-              const SizedBox(width: 12),
-              _buildChartBar('Borrowed', c.borrowedUnits, borrowingColor),
-              const SizedBox(width: 12),
-              _buildChartBar('Pending', c.pendingRequests, pendingColor),
-              const SizedBox(width: 12),
-              _buildChartBar('Disabled', c.disabledUnits, disabledColor),
-            ],
-          ),
-          const SizedBox(height: 28),
-          Center(
-            child: Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                _buildStatCard('Available', c.availableUnits, availableColor),
-                _buildStatCard('Borrowed', c.borrowedUnits, borrowingColor),
-                _buildStatCard('Pending', c.pendingRequests, pendingColor),
-                _buildStatCard('Disabled', c.disabledUnits, disabledColor),
-              ],
-            ),
-          ),
-        ],
+          );
+        }),
       ),
     );
   }
 
-  Widget _buildChartBar(String label, int value, Color color) {
-    final height = value.clamp(0, 30) * 6.0 + 12;
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            height: height,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String label, int value, Color color) {
+  // 🔹 กล่องข้อมูลสรุป
+  Widget _buildCountBox(String label, int count) {
     return Container(
-      width: 150,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+      width: double.infinity,
+      height: 100,
       decoration: BoxDecoration(
-        color: const Color(0xFF2B2B2E),
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFFEFEFEF),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black,
+            blurRadius: 6,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            '$value',
-            style: TextStyle(
-              color: color,
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
+            '$count',
+            style: const TextStyle(
+              color: Colors.teal,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
+              color: Colors.black,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -215,72 +165,54 @@ class _StaffHomePageState extends State<StaffHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _scaffoldBgColor,
-      bottomNavigationBar: _buildBottomNavBar(),
       body: SafeArea(
-        child: FutureBuilder<_Counts>(
-          future: _future,
-          builder: (context, s) {
-            if (s.connectionState != ConnectionState.done) {
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
-              );
-            }
-            if (s.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Error: ${s.error}',
-                      style: const TextStyle(color: Colors.white),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () => setState(() => _future = _fetchCounts()),
-                      child: const Text('Retry'),
-                    ),
-                  ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Dashboard',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              );
-            }
-            final counts = s.data!;
-            return _buildDashboardBody(counts);
-          },
+                const SizedBox(height: 16),
+
+                // 🔹 กราฟแท่ง
+                _buildBarChart(),
+                const SizedBox(height: 30),
+
+                // 🔹 กล่องสรุปสถานะ (2x2)
+                Center(
+                  child: SizedBox(
+                    width: 300, // กำหนดความกว้างทั้งหมดของกริด
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.1,
+                      children: [
+                        _buildCountBox('Available', 6),
+                        _buildCountBox('Pending', 4),
+                        _buildCountBox('Disable', 5),
+                        _buildCountBox('Borrowed', 13),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
+      bottomNavigationBar: _buildBottomNavBar(),
     );
-  }
-}
-
-// 🔹 Model สำหรับ count data
-class _Counts {
-  final int borrowedUnits;
-  final int availableUnits;
-  final int disabledUnits;
-  final int pendingRequests;
-
-  _Counts({
-    required this.borrowedUnits,
-    required this.availableUnits,
-    required this.disabledUnits,
-    required this.pendingRequests,
-  });
-
-  factory _Counts.fromJson(Map<String, dynamic> j) => _Counts(
-    borrowedUnits: _asInt(j['borrowed_units']),
-    availableUnits: _asInt(j['available_units']),
-    disabledUnits: _asInt(j['disabled_units']),
-    pendingRequests: _asInt(j['pending_requests']),
-  );
-}
-
-int _asInt(dynamic v) {
-  if (v is int) return v;
-  if (v is num) return v.toInt();
-  if (v is String) {
-    final n = int.tryParse(v) ?? double.tryParse(v)?.toInt();
-    return n ?? 0;
   }
   return 0;
 }
