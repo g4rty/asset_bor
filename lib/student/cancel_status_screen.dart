@@ -413,7 +413,7 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                           fontSize: 18,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 13),
                       Row(
                         children: [
                           const Text(
