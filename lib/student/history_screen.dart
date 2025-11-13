@@ -17,6 +17,9 @@ class BorrowHistory {
   final String objective;
   final String status;
   final String imagePath;
+  final String? actualReturnDate;
+  final String? rejectionReason;
+  // สวัสดี
 
   BorrowHistory({
     required this.item,

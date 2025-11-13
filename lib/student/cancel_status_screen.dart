@@ -231,8 +231,79 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                           style: TextStyle(color: Colors.black, fontSize: 16),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 13),
+                      Row(
+                        children: [
+                          const Text(
+                            'Status:',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            (_currentStatus?.toLowerCase() == 'approved' ||
+                                    _currentStatus?.toLowerCase() == 'borrowed')
+                                ? 'Borrowing'
+                                : _currentStatus?.toUpperCase() ?? "",
+                            style: TextStyle(
+                              color: _currentStatus == 'pending'
+                                  ? Colors.yellow
+                                  : (_currentStatus?.toLowerCase() ==
+                                            'approved' ||
+                                        _currentStatus?.toLowerCase() ==
+                                            'borrowed')
+                                  ? Colors.lightBlueAccent
+                                  : _currentStatus == 'cancelled'
+                                  ? Colors.redAccent
+                                  : Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+                      if (_currentStatus == 'pending')
+                        Center(
+                          child: SizedBox(
+                            width: 150,
+                            child: ElevatedButton(
+                              onPressed: _isCancelling
+                                  ? null
+                                  : _showCancelDialog,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                                backgroundColor: const Color(0xFFF0A6A6),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                elevation: 8,
+                              ),
+                              child: _isCancelling
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -20,8 +20,80 @@ class _StudentHomePageState extends State<StudentHomePage> {
   static const Color _ruleNumberBgColor = Color(0xFFE53935);
   static const Color _lightTextColor = Color.fromARGB(255, 224, 224, 224);
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
+  @override
+  void initState() {
+    super.initState();
+    _fetchAllAssets();
+  }
+  //เทสๆ
+
+  Future<void> _fetchAllAssets() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/api/assets'),
+      );
+      print('Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final availableAssets = (data as List)
+            .where(
+              (asset) =>
+                  asset['asset_status'] == 'Available' &&
+                  (asset['quantity'] ?? 1) > 0,
+            )
+            .toList()
+            .reversed
+            .toList();
+
+        setState(() {
+          _assets = availableAssets;
+        });
+      } else {
+        print('Error: ${response.body}');
+      }
+    } catch (e) {
+      print('Fetch error: $e');
+    } finally {
+      setState(() => _loadingAssets = false);
+    }
+  }
+
+  void handleNavbar(int index) {
+    if (_selectedIndex == index) return;
+    setState(() => _selectedIndex = index);
+    switch (index) {
+      case 0:
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const StudentAssetsList()),
+        ).then((_) {
+          setState(() => _selectedIndex = 0);
+        });
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const CancelStatusScreen()),
+        ).then((_) {
+          setState(() => _selectedIndex = 0);
+        });
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const HistoryScreen()),
+        ).then((_) {
+          setState(() => _selectedIndex = 0);
+        });
+        break;
+    }
+  }
+
+  Future<void> _confirmAndLogout() async {
+    final ok = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
