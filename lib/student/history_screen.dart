@@ -6,6 +6,7 @@ import '../../auth_storage.dart';
 import '../../login.dart';
 import '../config.dart';
 import '../shared/logout.dart';
+import '../shared/navbar.dart';
 
 class BorrowHistory {
   final String item;
