@@ -344,9 +344,9 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
   String formatDate(dynamic value) {
     DateTime? date;
     if (value is DateTime) {
-      date = value;
+      date = value.toLocal();
     } else if (value is String) {
-      date = DateTime.tryParse(value);
+      date = DateTime.tryParse(value)?.toLocal();
     }
     if (date == null) return '-';
 
