@@ -226,7 +226,15 @@ class _HistoryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _line('Item', item.assetName),
+                Text(
+                  'Request ${item.requestId} · Asset ${item.assetName}',
+                  style: const TextStyle(
+                    color: Color(0xFFD4FF00),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
                 _line('Borrower', item.borrowerName),
                 _line('Date', _range(item.borrowDate, item.returnDate)),
                 _line('Handout by', item.approvalDate != null ? 'Staff' : '-'),
