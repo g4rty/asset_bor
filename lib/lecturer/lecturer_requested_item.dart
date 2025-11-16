@@ -55,7 +55,7 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
     });
 
     try {
-      final url = Uri.parse('${AppConfig.baseUrl}/requests/pending');
+      final url = Uri.parse('${AppConfig.baseUrl}/lecturers/requests/pending');
       final response = await http.get(url);
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
