@@ -49,12 +49,6 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
-    if (!emailRegex.hasMatch(email)) {
-      await _showErrorDialog('Please enter a valid email address.');
-      return;
-    }
-
     if (password != confirmPassword) {
       await _showErrorDialog('Passwords do not match.');
       return;

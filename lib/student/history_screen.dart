@@ -12,7 +12,6 @@ class BorrowHistory {
   final String item;
   final String borrowId;
   final String approver;
-  final String? receiver;
   final String borrowDate;
   final String returnDate;
   final String requestDate;
@@ -21,13 +20,11 @@ class BorrowHistory {
   final String imagePath;
   final String? actualReturnDate;
   final String? rejectionReason;
-  // สวัสดี
 
   BorrowHistory({
     required this.item,
     required this.borrowId,
     required this.approver,
-    required this.receiver,
     required this.borrowDate,
     required this.requestDate,
     required this.returnDate,
@@ -43,7 +40,6 @@ class BorrowHistory {
       item: j['asset_name'] ?? '-',
       borrowId: j['request_id'].toString(),
       approver: j['approver_name'] ?? '-',
-      receiver: j['receiver_name'] ?? '-',
       requestDate: j['request_date'] ?? '-',
       borrowDate: j['borrow_date'] ?? '-',
       returnDate: j['return_date'] ?? '-',
@@ -278,8 +274,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildHistoryCard(BorrowHistory item) {
     final bool isRejected = item.status == 'rejected';
+    final bool isApproved = item.status == 'approved';
     final bool isCancelled = item.status == 'cancelled';
-    final bool isReturned = item.status == 'returned';
+    final bool isPending = item.status == 'pending';
 
     Color statusColor;
     String statusText;
@@ -289,18 +286,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
       statusColor = const Color(0xFFEF5350);
       statusText = 'Rejected: ${item.rejectionReason ?? '-'}';
       textColor = Colors.white;
+    } else if (isPending) {
+      statusColor = Colors.yellowAccent;
+      statusText = 'Pending';
+    } else if (isApproved && item.actualReturnDate != '-') {
+      statusColor = const Color(0xFFD4FFAA);
+      statusText = 'Returned: ${item.actualReturnDate}';
     } else if (isCancelled) {
       statusColor = Colors.grey;
       statusText = 'Cancelled';
-      textColor = Colors.white;
-    } else if (isReturned) {
-      statusColor = const Color(0xFFD4FFAA);
-      statusText = 'Returned: ${item.actualReturnDate ?? '-'}';
-      textColor = Colors.black;
     } else {
-      statusColor = Colors.white24;
-      statusText = item.status;
-      textColor = Colors.white;
+      statusColor = const Color(0xFFAEE4FF);
+      statusText = 'Borrowing';
     }
 
     return Container(
@@ -317,11 +314,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 120,
-            height: 130,
+            width: 100,
+            height: 100,
             clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
-            child: Image.asset(item.imagePath, fit: BoxFit.cover),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+            child: Image.asset(item.imagePath, fit: BoxFit.contain),
           ),
           const SizedBox(width: 16),
 
@@ -350,12 +347,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                 Text(
                   'Approve By: ${item.approver}',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                const SizedBox(height: 6),
-
-                Text(
-                  'Return Received By: ${item.receiver}',
                   style: const TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 6),

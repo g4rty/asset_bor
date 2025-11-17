@@ -10,7 +10,7 @@ class EditAssetPage extends StatefulWidget {
   final String description;
   final int quantity;
   final String status;
-  final dynamic imageUrl;
+  final String? imageUrl;
 
   const EditAssetPage({
     super.key,
@@ -20,7 +20,7 @@ class EditAssetPage extends StatefulWidget {
     required this.description,
     required this.quantity,
     required this.status,
-    required this.imageUrl,
+    this.imageUrl,
   });
 
   @override
@@ -156,9 +156,9 @@ class _EditAssetPageState extends State<EditAssetPage> {
               style: TextButton.styleFrom(
                 backgroundColor: const Color(0xFFD8FFA3),
               ),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                _deleteAsset();
+                await _deleteAsset();
               },
               child: const Text(
                 'Delete',
@@ -187,10 +187,11 @@ class _EditAssetPageState extends State<EditAssetPage> {
     if (_imageFile != null) {
       imageProvider = FileImage(_imageFile!);
     } else if (widget.imageUrl != null) {
-      if (widget.imageUrl.toString().startsWith('http')) {
-        imageProvider = NetworkImage(widget.imageUrl);
+      final url = widget.imageUrl!;
+      if (url.startsWith('http')) {
+        imageProvider = NetworkImage(url);
       } else {
-        imageProvider = AssetImage(widget.imageUrl);
+        imageProvider = AssetImage(url);
       }
     }
 
@@ -217,10 +218,11 @@ class _EditAssetPageState extends State<EditAssetPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF272727),
+      backgroundColor: const Color(0xFF202020),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF272727),
-        title: const Text('Edit Asset', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text('Edit Asset'),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.redAccent),

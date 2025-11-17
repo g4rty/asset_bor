@@ -72,10 +72,6 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        if (!['pending', 'Borrowed', 'approved'].contains(data['status'])) {
-          setState(() => _loading = false);
-          return;
-        }
         if (data['status'] == 'cancelled') {
           setState(() => _loading = false);
           return;
@@ -413,7 +409,7 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                           fontSize: 18,
                         ),
                       ),
-                      const SizedBox(height: 13),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           const Text(
@@ -425,17 +421,16 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            (_currentStatus?.toLowerCase() == 'approved' ||
-                                    _currentStatus?.toLowerCase() == 'borrowed')
+                            _currentStatus == 'Borrowed'
+                                ? 'Borrowing'
+                                : _currentStatus == 'approved'
                                 ? 'Borrowing'
                                 : _currentStatus?.toUpperCase() ?? "",
                             style: TextStyle(
                               color: _currentStatus == 'pending'
                                   ? Colors.yellow
-                                  : (_currentStatus?.toLowerCase() ==
-                                            'approved' ||
-                                        _currentStatus?.toLowerCase() ==
-                                            'borrowed')
+                                  : _currentStatus == 'Borrowed' ||
+                                        _currentStatus == 'approved'
                                   ? Colors.lightBlueAccent
                                   : _currentStatus == 'cancelled'
                                   ? Colors.redAccent
