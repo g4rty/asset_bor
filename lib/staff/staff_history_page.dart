@@ -36,7 +36,7 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1F1F1F),
+      backgroundColor: const Color.fromARGB(255, 39, 39, 39),
       body: SafeArea(child: _buildBody()),
       bottomNavigationBar: _buildBottomNavBar(),
     );
