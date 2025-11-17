@@ -46,7 +46,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
     setState(() => _isLoading = true);
 
     final uri = Uri.parse(
-      'http://192.168.1.100:3000/api/assets',
+      'http://${AppConfig.baseUrl}/api/assets',
     ); // ⚠️ Replace with your backend URL
     final request = http.MultipartRequest('POST', uri);
 

@@ -24,7 +24,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
 
   Future<List<dynamic>> fetchAssets() async {
     final response = await http.get(
-      Uri.parse('http://192.168.1.100:3000/api/assets'),
+      Uri.parse('http://${AppConfig.baseUrl}/api/assets'),
     );
 
     if (response.statusCode == 200) {

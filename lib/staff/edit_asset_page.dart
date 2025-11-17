@@ -63,7 +63,7 @@ class _EditAssetPageState extends State<EditAssetPage> {
     String statusToSend = qty == 0 ? 'Borrowed' : _status;
 
     final uri = Uri.parse(
-      'http://192.168.1.100:3000/api/assets/${widget.assetId}',
+      'http://${AppConfig.baseUrl}/api/assets/${widget.assetId}',
     );
     var request = http.MultipartRequest('PUT', uri);
 
