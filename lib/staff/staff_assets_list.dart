@@ -7,6 +7,7 @@ import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:asset_bor/staff/staff_history_page.dart';
 import 'package:asset_bor/staff/staff_home_page.dart';
 import 'package:asset_bor/shared/logout.dart';
+import 'package:asset_bor/config.dart';
 
 class StaffAssetsList extends StatefulWidget {
   const StaffAssetsList({super.key});
@@ -24,7 +25,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
 
   Future<List<dynamic>> fetchAssets() async {
     final response = await http.get(
-      Uri.parse('http://${AppConfig.baseUrl}/api/assets'),
+      Uri.parse('${AppConfig.baseUrl}/api/assets'),
     );
 
     if (response.statusCode == 200) {
