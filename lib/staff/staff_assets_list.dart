@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:asset_bor/staff/add_asset_page.dart';
 import 'package:asset_bor/staff/edit_asset_page.dart';
+import 'package:asset_bor/config.dart';
+import 'package:asset_bor/shared/logout.dart';
+import 'package:asset_bor/shared/navbar.dart';
 import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:asset_bor/staff/staff_history_page.dart';
 import 'package:asset_bor/staff/staff_home_page.dart';
-import 'package:asset_bor/shared/logout.dart';
-import 'package:asset_bor/config.dart';
 
 class StaffAssetsList extends StatefulWidget {
   const StaffAssetsList({super.key});
@@ -17,9 +18,8 @@ class StaffAssetsList extends StatefulWidget {
 }
 
 class _StaffAssetsListState extends State<StaffAssetsList> {
-  int _selectedIndex = 1;
   final Color _scaffoldBgColor = const Color.fromARGB(255, 39, 39, 39);
-  final Color _accentColor = const Color(0xFFD8FFA3);
+  static const int _selectedIndex = 1;
 
   late Future<List<dynamic>> _assetsFuture;
 
@@ -46,66 +46,41 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
     _assetsFuture = fetchAssets();
   }
 
-  // 🔹 Bottom Navigation Bar
-  Widget _buildBottomNavBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      color: Colors.black,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(icon: Icons.home, index: 0),
-          _buildNavItem(icon: Icons.shopping_bag_outlined, index: 1),
-          _buildNavItem(icon: Icons.list_alt_outlined, index: 2),
-          _buildNavItem(icon: Icons.history, index: 3),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem({required IconData icon, required int index}) {
-    final bool isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () async {
-        setState(() => _selectedIndex = index);
-
-        if (index == 0) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StaffHomePage()),
-          );
-        } else if (index == 2) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StaffHandPage()),
-          );
-        } else if (index == 3) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
-          );
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isSelected ? _accentColor : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.black : Colors.white,
-          size: 26,
-        ),
-      ),
-    );
+  void handleNavTap(int index) {
+    if (index == _selectedIndex) return;
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StaffHomePage()),
+      );
+    } else if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StaffHandPage()),
+      );
+    } else if (index == 3) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StaffHistoryPage()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _scaffoldBgColor,
+      appBar: AppBar(
+        backgroundColor: _scaffoldBgColor,
+        automaticallyImplyLeading: false,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Asset List',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        actions: const [LogoutButton(iconColor: Colors.white)],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -139,11 +114,16 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                   children: [
                     Row(
                       children: [
-                        const Text(
-                          'Asset List',
-                          style: TextStyle(color: Colors.white, fontSize: 36),
+                        const Expanded(
+                          child: Text(
+                            'Asset List',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 36,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                        const Spacer(),
                         FilledButton.icon(
                           onPressed: () async {
                             final newAsset = await Navigator.push(
@@ -162,7 +142,6 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                           label: const Text('Add'),
                           icon: const Icon(Icons.create_new_folder_sharp),
                         ),
-                        const LogoutButton(iconColor: Colors.white),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -184,7 +163,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
+      bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavTap),
     );
   }
 
