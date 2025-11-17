@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:asset_bor/config.dart';
 
 class AddAssetPage extends StatefulWidget {
   const AddAssetPage({super.key});
@@ -46,7 +47,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
     setState(() => _isLoading = true);
 
     final uri = Uri.parse(
-      'http://192.168.1.100:3000/api/assets',
+      '${AppConfig.baseUrl}/api/assets',
     ); // ⚠️ Replace with your backend URL
     final request = http.MultipartRequest('POST', uri);
 
