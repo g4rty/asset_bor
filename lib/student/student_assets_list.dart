@@ -103,7 +103,6 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     }
   }
 
-  // เช็คว่าวันนี้ยืมไปแล้วไหม
   Future<void> _checkCanBorrow() async {
     final userId = await AuthStorage.getUserId();
     if (userId == null) return;
@@ -128,9 +127,6 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     _checkCanBorrow();
   }
 
-  // ============================
-  //  STATUS BUTTON (แก้ใหม่!!)
-  // ============================
   Widget _buildAvailableChip(Map<String, dynamic> asset) {
     final status = asset['status'];
     final int quantity = asset['quantity'] ?? 0;
@@ -168,8 +164,6 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
           _showAlert("You can borrow only 1 item per day.");
           return;
         }
-
-        // ✅ ไปหน้าฟอร์มเมื่อพร้อม
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -178,8 +172,6 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
         );
       },
       child: Opacity(
-        // [!!! 2. แก้ไขตรงนี้ !!!]
-        // เปลี่ยนเงื่อนไข Opacity ไม่ให้ขึ้นกับ _canBorrowToday
         opacity: (status == 'Available' && quantity > 0) ? 1.0 : 0.5,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -200,7 +192,6 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     );
   }
 
-  // LOGOUT
   Future<void> _confirmAndLogout() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -267,9 +258,6 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     }
   }
 
-  // =============================
-  //          UI
-  // =============================
   @override
   Widget build(BuildContext context) {
     return Scaffold(

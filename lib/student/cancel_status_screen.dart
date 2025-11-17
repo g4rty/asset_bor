@@ -112,10 +112,7 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
     final res = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'requestId': _itemId, // 👈 เพิ่ม requestId
-        'borrowerId': userId, // 👈 ส่ง borrowerId เหมือนเดิม
-      }),
+      body: jsonEncode({'requestId': _itemId, 'borrowerId': userId}),
     );
 
     if (!mounted) return;

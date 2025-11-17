@@ -21,7 +21,6 @@ class BorrowHistory {
   final String imagePath;
   final String? actualReturnDate;
   final String? rejectionReason;
-  // สวัสดี
 
   BorrowHistory({
     required this.item,
@@ -178,18 +177,41 @@ class _HistoryScreenState extends State<HistoryScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1F1F1F),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Logout', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Logout',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         content: const Text(
           'Are you sure you want to log out?',
-          style: TextStyle(color: Color(0xFFB0B0B0)),
+          style: TextStyle(color: Color(0xFFB0B0B0), fontSize: 15, height: 1.4),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Color(0xFF424242)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            ),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 210, 245, 160),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Logout'),
           ),
         ],
