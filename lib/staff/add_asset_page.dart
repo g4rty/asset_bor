@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:asset_bor/config.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -46,7 +47,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
     setState(() => _isLoading = true);
 
     final uri = Uri.parse(
-      'http://192.168.1.100:3000/api/assets',
+      '${AppConfig.baseUrl}/api/assets',
     ); // ⚠️ Replace with your backend URL
     final request = http.MultipartRequest('POST', uri);
 
@@ -237,7 +238,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
                   // Status Dropdown
                   DropdownButtonFormField<String>(
                     value: _status,
-                    items: ['Available', 'Borrowed', 'Disabled']
+                    items: ['Available', 'Borrowed', 'Disable']
                         .map(
                           (status) => DropdownMenuItem(
                             value: status,

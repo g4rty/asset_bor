@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:asset_bor/config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:asset_bor/staff/add_asset_page.dart';
@@ -24,7 +25,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
 
   Future<List<dynamic>> fetchAssets() async {
     final response = await http.get(
-      Uri.parse('http://192.168.1.100:3000/api/assets'),
+      Uri.parse('${AppConfig.baseUrl}/api/assets'),
     );
 
     if (response.statusCode == 200) {
@@ -326,7 +327,6 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                                 status: status,
                                 imageUrl: imageUrl,
                                 quantity: asset['quantity'],
-                                index: 0,
                               ),
                             ),
                           );

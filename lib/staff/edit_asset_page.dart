@@ -1,26 +1,25 @@
 import 'dart:io';
+import 'package:asset_bor/config.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
 class EditAssetPage extends StatefulWidget {
   final int assetId;
-  final int index;
   final String assetName;
   final String description;
   final int quantity;
   final String status;
-  final String? imageUrl;
+  final String imageUrl;
 
   const EditAssetPage({
     super.key,
     required this.assetId,
-    required this.index,
     required this.assetName,
     required this.description,
     required this.quantity,
     required this.status,
-    this.imageUrl,
+    required this.imageUrl,
   });
 
   @override
@@ -46,25 +45,19 @@ class _EditAssetPageState extends State<EditAssetPage> {
     _status = widget.status;
   }
 
-  /// เลือกรูปจาก gallery
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => _imageFile = File(picked.path));
-    }
+    if (picked != null) setState(() => _imageFile = File(picked.path));
   }
 
-  /// ฟังก์ชันบันทึก asset
   Future<void> _saveAsset() async {
     setState(() => _isSaving = true);
-
     int qty = int.tryParse(_quantityController.text) ?? 0;
     String statusToSend = qty == 0 ? 'Borrowed' : _status;
 
-    final uri = Uri.parse(
-      'http://192.168.1.100:3000/api/assets/${widget.assetId}',
-    );
+    final uri = Uri.parse('${AppConfig.baseUrl}/api/assets/${widget.assetId}');
+
     var request = http.MultipartRequest('PUT', uri);
 
     request.fields['name'] = _nameController.text;
@@ -109,11 +102,9 @@ class _EditAssetPageState extends State<EditAssetPage> {
     }
   }
 
-  /// ฟังก์ชันลบ asset
   Future<void> _deleteAsset() async {
-    final uri = Uri.parse(
-      'http://192.168.1.100:3000/api/assets/${widget.assetId}',
-    );
+    final uri = Uri.parse('${AppConfig.baseUrl}/api/assets/${widget.assetId}');
+
     try {
       final response = await http.delete(uri);
       if (!mounted) return;
@@ -186,12 +177,11 @@ class _EditAssetPageState extends State<EditAssetPage> {
 
     if (_imageFile != null) {
       imageProvider = FileImage(_imageFile!);
-    } else if (widget.imageUrl != null) {
-      final url = widget.imageUrl!;
-      if (url.startsWith('http')) {
-        imageProvider = NetworkImage(url);
+    } else if (widget.imageUrl.isNotEmpty) {
+      if (widget.imageUrl.startsWith('http')) {
+        imageProvider = NetworkImage(widget.imageUrl);
       } else {
-        imageProvider = AssetImage(url);
+        imageProvider = AssetImage(widget.imageUrl);
       }
     }
 
@@ -314,7 +304,7 @@ class _EditAssetPageState extends State<EditAssetPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _saveAsset,
+                      onPressed: _isSaving ? null : _saveAsset,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFD8FFA3),
                         foregroundColor: Colors.black,
