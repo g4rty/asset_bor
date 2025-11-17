@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
 class AddAssetPage extends StatefulWidget {
   const AddAssetPage({super.key});
@@ -12,29 +13,88 @@ class AddAssetPage extends StatefulWidget {
 class _AddAssetPageState extends State<AddAssetPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  String _status = 'Available';
-  File? _imageFile; // เก็บภาพที่เลือก
+  final TextEditingController _quantityController = TextEditingController(
+    text: '1',
+  );
 
+  String _status = 'Available';
+  File? _imageFile;
+  bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
 
-  // เลือกรูปจาก gallery
+  // Pick image from gallery
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
     );
     if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
+      setState(() => _imageFile = File(pickedFile.path));
     }
   }
 
-  // แสดง popup ยืนยัน
-  void _showConfirmDialog() {
-    if (_nameController.text.isEmpty || _descriptionController.text.isEmpty) {
+  // Upload asset data to backend
+  Future<void> _uploadAsset() async {
+    if (_nameController.text.isEmpty ||
+        _descriptionController.text.isEmpty ||
+        _quantityController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill out all fields')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final uri = Uri.parse(
+      'http://192.168.1.100:3000/api/assets',
+    ); // ⚠️ Replace with your backend URL
+    final request = http.MultipartRequest('POST', uri);
+
+    request.fields['name'] = _nameController.text;
+    request.fields['description'] = _descriptionController.text;
+    request.fields['status'] = _status;
+    request.fields['quantity'] = _quantityController.text;
+
+    if (_imageFile != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath('image', _imageFile!.path),
+      );
+    }
+
+    try {
+      final response = await request.send();
+      setState(() => _isLoading = false);
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✅ Asset added successfully')),
+          );
+          Navigator.pop(context, true);
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Failed to add (Code: ${response.statusCode})'),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  // Confirm before adding
+  void _showConfirmDialog() {
+    if (_nameController.text.isEmpty ||
+        _descriptionController.text.isEmpty ||
+        _quantityController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill out all fields')),
+      );
       return;
     }
 
@@ -47,7 +107,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
             borderRadius: BorderRadius.circular(20),
           ),
           content: const Text(
-            'Are you sure to add new item?',
+            'Are you sure you want to add this item?',
             style: TextStyle(color: Colors.white, fontSize: 18),
             textAlign: TextAlign.center,
           ),
@@ -62,19 +122,8 @@ class _AddAssetPageState extends State<AddAssetPage> {
                 ),
               ),
               onPressed: () {
-                final newAsset = {
-                  'name': _nameController.text,
-                  'description': _descriptionController.text,
-                  'status': _status,
-                  'statusColor': _status == 'Available'
-                      ? const Color(0xFFD8FFA3)
-                      : _status == 'Borrowed'
-                      ? const Color(0xFF81E6FF)
-                      : const Color.fromARGB(255, 185, 185, 185),
-                  'imageFile': _imageFile, // File?
-                };
-                Navigator.pop(context); // ปิด popup
-                Navigator.pop(context, newAsset); // ส่ง asset กลับ
+                Navigator.pop(context);
+                _uploadAsset();
               },
               child: const Text(
                 'Add',
@@ -109,94 +158,135 @@ class _AddAssetPageState extends State<AddAssetPage> {
         backgroundColor: const Color(0xFF424242),
       ),
       backgroundColor: const Color(0xFF2F2F2F),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF424242),
-                    borderRadius: BorderRadius.circular(20),
-                    image: _imageFile != null
-                        ? DecorationImage(
-                            image: FileImage(_imageFile!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF424242),
+                        borderRadius: BorderRadius.circular(20),
+                        image: _imageFile != null
+                            ? DecorationImage(
+                                image: FileImage(_imageFile!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: _imageFile == null
+                          ? const Icon(
+                              Icons.add_a_photo,
+                              color: Colors.white70,
+                              size: 40,
+                            )
+                          : null,
+                    ),
                   ),
-                  child: _imageFile == null
-                      ? const Icon(
-                          Icons.add_a_photo,
-                          color: Colors.white70,
-                          size: 40,
+                  const SizedBox(height: 16),
+
+                  // Asset Name
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Asset Name',
+                      labelStyle: TextStyle(color: Colors.white),
+                      filled: true,
+                      fillColor: Color(0xFF424242),
+                      border: OutlineInputBorder(),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Description
+                  TextField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      labelStyle: TextStyle(color: Colors.white),
+                      filled: true,
+                      fillColor: Color(0xFF424242),
+                      border: OutlineInputBorder(),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Quantity
+                  TextField(
+                    controller: _quantityController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantity',
+                      labelStyle: TextStyle(color: Colors.white),
+                      filled: true,
+                      fillColor: Color(0xFF424242),
+                      border: OutlineInputBorder(),
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Status Dropdown
+                  DropdownButtonFormField<String>(
+                    value: _status,
+                    items: ['Available', 'Borrowed', 'Disabled']
+                        .map(
+                          (status) => DropdownMenuItem(
+                            value: status,
+                            child: Text(status),
+                          ),
                         )
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Asset Name',
-                  labelStyle: TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Color(0xFF424242),
-                ),
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  labelStyle: TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Color(0xFF424242),
-                ),
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _status,
-                items: ['Available', 'Borrowed', 'Disabled']
-                    .map(
-                      (status) =>
-                          DropdownMenuItem(value: status, child: Text(status)),
-                    )
-                    .toList(),
-                onChanged: (value) => setState(() => _status = value!),
-                decoration: const InputDecoration(
-                  labelText: 'Status',
-                  labelStyle: TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Color(0xFF424242),
-                ),
-                dropdownColor: const Color(0xFF424242),
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: _showConfirmDialog,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFF69E),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
+                        .toList(),
+                    onChanged: (value) => setState(() => _status = value!),
+                    decoration: const InputDecoration(
+                      labelText: 'Status',
+                      labelStyle: TextStyle(color: Colors.white),
+                      filled: true,
+                      fillColor: Color(0xFF424242),
+                      border: OutlineInputBorder(),
+                    ),
+                    dropdownColor: const Color(0xFF424242),
+                    style: const TextStyle(color: Colors.white),
                   ),
-                ),
-                child: const Text(
-                  'Add Asset',
-                  style: TextStyle(color: Colors.black),
-                ),
+                  const SizedBox(height: 32),
+
+                  // Add Button
+                  FilledButton(
+                    onPressed: _showConfirmDialog,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFF69E),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
+                      ),
+                    ),
+                    child: const Text(
+                      'Add Asset',
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+
+          // Loading overlay
+          if (_isLoading)
+            Container(
+              color: Colors.black45,
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
+        ],
       ),
     );
   }
