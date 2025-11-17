@@ -130,7 +130,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return [];
     }
 
-    final url = Uri.parse('${AppConfig.baseUrl}/students/$userId/history');
+    final url = Uri.parse(
+      '${AppConfig.baseUrl}/api/student/history?studentId=$userId',
+    );
+
     final response = await http.get(url);
 
     if (response.statusCode != 200) {

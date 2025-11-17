@@ -12,7 +12,6 @@ import '../../login.dart';
 
 class StudentAssetsList extends StatefulWidget {
   const StudentAssetsList({super.key});
-  //เทส
 
   @override
   State<StudentAssetsList> createState() => _StudentAssetsListState();
@@ -29,6 +28,29 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
   int _selectedIndex = 1;
   bool _loggingOut = false;
   bool _isLoading = true;
+
+  bool _canBorrowToday = true;
+
+  void _showAlert(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1F1F1F),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Warning',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(message, style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   Color _getCardBackgroundColor(Map<String, dynamic> asset) {
     final status = asset['status'];
@@ -81,19 +103,40 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     }
   }
 
+  // เช็คว่าวันนี้ยืมไปแล้วไหม
+  Future<void> _checkCanBorrow() async {
+    final userId = await AuthStorage.getUserId();
+    if (userId == null) return;
+
+    final url = Uri.parse(
+      '${AppConfig.baseUrl}/api/student/assetlist?borrowerId=$userId',
+    );
+    final res = await http.get(url);
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      setState(() {
+        _canBorrowToday = data['canBorrow'];
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _fetchAssets();
+    _checkCanBorrow();
   }
 
+  // ============================
+  //  STATUS BUTTON (แก้ใหม่!!)
+  // ============================
   Widget _buildAvailableChip(Map<String, dynamic> asset) {
     final status = asset['status'];
     final int quantity = asset['quantity'] ?? 0;
 
     String label;
     Color bgColor;
-    bool isClickable = false;
 
     if (status == 'Disable' || status == 'Disabled') {
       label = 'Disabled';
@@ -104,28 +147,40 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     } else if (status == 'Available') {
       label = 'Available';
       bgColor = const Color(0xFFD4FFAA);
-      isClickable = true;
-    } else if (status == 'Borrowed') {
-      label = 'Borrowed';
-      bgColor = const Color(0xFF6ED0FF);
     } else {
       label = status;
       bgColor = Colors.grey;
     }
 
     return GestureDetector(
-      onTap: isClickable
-          ? () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => StudentRequestForm(asset: asset),
-                ),
-              );
-            }
-          : null,
+      onTap: () {
+        if (status != 'Available') {
+          _showAlert("This item is not available for borrowing.");
+          return;
+        }
+
+        if (quantity <= 0) {
+          _showAlert("This item is out of stock.");
+          return;
+        }
+
+        if (!_canBorrowToday) {
+          _showAlert("You can borrow only 1 item per day.");
+          return;
+        }
+
+        // ✅ ไปหน้าฟอร์มเมื่อพร้อม
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StudentRequestForm(asset: asset),
+          ),
+        );
+      },
       child: Opacity(
-        opacity: isClickable ? 1.0 : 0.6,
+        // [!!! 2. แก้ไขตรงนี้ !!!]
+        // เปลี่ยนเงื่อนไข Opacity ไม่ให้ขึ้นกับ _canBorrowToday
+        opacity: (status == 'Available' && quantity > 0) ? 1.0 : 0.5,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
@@ -145,6 +200,7 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     );
   }
 
+  // LOGOUT
   Future<void> _confirmAndLogout() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -211,6 +267,9 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     }
   }
 
+  // =============================
+  //          UI
+  // =============================
   @override
   Widget build(BuildContext context) {
     return Scaffold(

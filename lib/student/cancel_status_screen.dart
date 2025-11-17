@@ -66,7 +66,10 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
       final userId = await AuthStorage.getUserId();
       if (userId == null) return;
 
-      final url = Uri.parse('${AppConfig.baseUrl}/api/student/$userId/status');
+      final url = Uri.parse(
+        '${AppConfig.baseUrl}/api/student/status?borrowerId=$userId',
+      );
+
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -104,11 +107,15 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
     setState(() => _isCancelling = true);
 
     final userId = await AuthStorage.getUserId();
-    final url = Uri.parse('${AppConfig.baseUrl}/api/request/$_itemId/cancel');
+    final url = Uri.parse('${AppConfig.baseUrl}/api/student/status/cancel');
+
     final res = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'borrowerId': userId}),
+      body: jsonEncode({
+        'requestId': _itemId, // 👈 เพิ่ม requestId
+        'borrowerId': userId, // 👈 ส่ง borrowerId เหมือนเดิม
+      }),
     );
 
     if (!mounted) return;

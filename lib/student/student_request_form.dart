@@ -55,7 +55,7 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
       final returnDate = DateFormat('yyyy-MM-dd').format(tomorrow);
 
       final response = await http.post(
-        Uri.parse('${AppConfig.baseUrl}/api/borrow'),
+        Uri.parse('${AppConfig.baseUrl}/api/student/request_form'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'asset_id': assetId,
