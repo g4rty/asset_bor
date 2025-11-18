@@ -423,8 +423,8 @@ class _HandCard extends StatelessWidget {
         ],
       ),
     );
-  }
- 
+  } 
+
   static Widget _line(String k, String v) => Padding(
     padding: const EdgeInsets.only(bottom: 4),
     child: RichText(
