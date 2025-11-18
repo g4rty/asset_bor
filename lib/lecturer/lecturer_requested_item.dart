@@ -80,7 +80,7 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
   Future approveAPI(int requestId) async {
     final userId = await AuthStorage.getUserId();
     if (userId == null) return;
-    final url = Uri.parse('${AppConfig.baseUrl}/requests/$requestId/approve');
+    final url = Uri.parse('${AppConfig.baseUrl}/lecturers/requests/$requestId/approve');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -94,7 +94,7 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
   Future rejectAPI(int requestId, String reason) async {
     final userId = await AuthStorage.getUserId();
     if (userId == null) return;
-    final url = Uri.parse('${AppConfig.baseUrl}/requests/$requestId/reject');
+    final url = Uri.parse('${AppConfig.baseUrl}/lecturers/requests/$requestId/reject');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
