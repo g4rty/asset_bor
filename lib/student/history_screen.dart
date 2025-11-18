@@ -353,7 +353,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Request ${item.borrowId} · Asset ${item.item}',
+                  '${item.item}',
                   style: const TextStyle(
                     color: Color(0xFFD4FF00),
                     fontSize: 16,
