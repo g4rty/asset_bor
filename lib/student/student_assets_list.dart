@@ -79,15 +79,21 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
           assets.clear();
           assets.addAll(
             data.map((e) {
+              final imageFile = (e['image'] as String?) ?? '';
+              final hasImage = imageFile.isNotEmpty;
+              final isUploadFile = imageFile.contains('-');
+              final imageUrl = !hasImage
+                  ? 'assets/images/placeholder.png'
+                  : isUploadFile
+                  ? '${AppConfig.baseUrl}/uploads/$imageFile'
+                  : 'assets/images/$imageFile';
               return {
                 'id': e['asset_id'],
                 'name': e['asset_name'] ?? 'Unnamed',
                 'description': e['description'] ?? 'No description',
                 'status': e['asset_status'] ?? 'Unknown',
                 'quantity': e['quantity'] ?? 0,
-                'image': e['image'] != null && e['image'].isNotEmpty
-                    ? 'assets/images/${e['image']}'
-                    : 'assets/images/placeholder.png',
+                'imageUrl': imageUrl,
               };
             }).toList(),
           );
@@ -336,12 +342,38 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
                             clipBehavior: Clip.antiAlias,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(14),
-                              image: asset['image'] != null
-                                  ? DecorationImage(
-                                      image: AssetImage(asset['image']),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
+                              color: Colors.black26,
+                            ),
+                            child: Builder(
+                              builder: (context) {
+                                final imageUrl =
+                                    asset['imageUrl'] as String? ?? '';
+                                if (imageUrl.isEmpty) {
+                                  return const Icon(
+                                    Icons.image_outlined,
+                                    color: Colors.white30,
+                                    size: 32,
+                                  );
+                                }
+                                if (imageUrl.startsWith('http')) {
+                                  return Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.broken_image,
+                                      color: Colors.white30,
+                                    ),
+                                  );
+                                }
+                                return Image.asset(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.white30,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(width: 16),

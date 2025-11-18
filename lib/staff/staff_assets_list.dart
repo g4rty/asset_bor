@@ -167,7 +167,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
     );
   }
 
-  // 🔹 การ์ดแสดงข้อมูลแต่ละรายการ
+  // 🔹 iาร์ดแสดงข้อมูลแต่ละรายการ
   Widget _buildAssetCard(Map<String, dynamic> asset, int index) {
     final id = asset['asset_id']?.toString() ?? '-';
     final name = asset['asset_name'] ?? 'Unnamed';
@@ -178,7 +178,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
 
     // กำหนด imageUrl สำหรับส่งไป EditAssetPage
     final imageUrl = isUploadFile
-        ? 'http://192.168.1.100:3000/uploads/$imageFile' // ไฟล์จาก upload
+        ? '${AppConfig.baseUrl}/uploads/$imageFile' // ไฟล์จาก upload
         : 'assets/images/$imageFile'; // ไฟล์จาก assets
 
     Color getStatusColor() {
