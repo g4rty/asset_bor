@@ -113,7 +113,7 @@ class _EditAssetPageState extends State<EditAssetPage> {
   // ลบ asset
   Future<void> _deleteAsset() async {
     final uri = Uri.parse(
-      'http://192.168.1.100:3000/api/assets/${widget.assetId}',
+      '${AppConfig.baseUrl}/api/assets/${widget.assetId}',
     );
     try {
       final response = await http.delete(uri);

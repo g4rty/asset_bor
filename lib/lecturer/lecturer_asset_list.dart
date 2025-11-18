@@ -29,7 +29,6 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
     loadAssets();
   }
 
-
   Future<void> loadAssets() async {
     setState(() {
       isLoading = true;
@@ -37,11 +36,15 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
     });
 
     try {
-      final response = await http.get(Uri.parse('${AppConfig.baseUrl}/lecturers/assets'));
+      final response = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/lecturers/assets'),
+      );
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
-      final data = List<Map<String, dynamic>>.from(jsonDecode(response.body) as List);
+      final data = List<Map<String, dynamic>>.from(
+        jsonDecode(response.body) as List,
+      );
       if (!mounted) return;
       setState(() {
         items = data;
@@ -58,7 +61,9 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
 
   Widget BodyBuilder() {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFD4FF00)));
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFFD4FF00)),
+      );
     }
 
     if (errorMsg != null) {
@@ -66,7 +71,10 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Error: $errorMsg', style: const TextStyle(color: Colors.white)),
+            Text(
+              'Error: $errorMsg',
+              style: const TextStyle(color: Colors.white),
+            ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: loadAssets,
@@ -95,7 +103,11 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
           if (index == 0) {
             return const Text(
               'Asset List',
-              style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
             );
           }
           final item = items[index - 1];
@@ -106,7 +118,14 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
   }
 
   Widget buildAssetCard(int index, Map<String, dynamic> item) {
-    final imagePath = ((item['image'] as String?) ?? '').trim();
+    final rawImagePath = ((item['image'] as String?) ?? '').trim();
+    final imageUrl = () {
+      if (rawImagePath.isEmpty) return '';
+      if (rawImagePath.startsWith('http')) return rawImagePath;
+      return rawImagePath.contains('-')
+          ? '${AppConfig.baseUrl}/uploads/$rawImagePath'
+          : 'assets/images/$rawImagePath';
+    }();
     final status = ((item['asset_status'] as String?) ?? '').trim();
     final name = ((item['asset_name'] as String?) ?? '').trim();
 
@@ -151,13 +170,17 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
               height: 130,
               color: const Color(0xFF2C2C2E),
               child: (() {
-                if (imagePath.isEmpty) {
-                  return const Icon(Icons.image, color: Colors.white24, size: 36);
+                if (imageUrl.isEmpty) {
+                  return const Icon(
+                    Icons.image,
+                    color: Colors.white24,
+                    size: 36,
+                  );
                 }
-                if (imagePath.startsWith('http')) {
-                  return Image.network(imagePath, fit: BoxFit.cover);
+                if (imageUrl.startsWith('http')) {
+                  return Image.network(imageUrl, fit: BoxFit.cover);
                 }
-                return Image.asset('assets/images/$imagePath', fit: BoxFit.cover);
+                return Image.asset(imageUrl, fit: BoxFit.cover);
               }()),
             ),
           ),
@@ -187,7 +210,10 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: bg,
                       borderRadius: BorderRadius.circular(20),
@@ -238,9 +264,7 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
           'Assets',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
-        actions: const [
-          LogoutButton(iconColor: Colors.white),
-        ],
+        actions: const [LogoutButton(iconColor: Colors.white)],
       ),
       body: SafeArea(child: BodyBuilder()),
       bottomNavigationBar: NavBar(index: 1, onTap: handleNavTap),
