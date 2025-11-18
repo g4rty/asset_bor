@@ -16,8 +16,8 @@ class StaffHistoryPage extends StatefulWidget {
   State<StaffHistoryPage> createState() => _StaffHistoryPageState();
 }
 
-// ตัวเลือก filter
-enum HistoryFilter { all, borrowing, returned, rejected }
+// ใช้เฉพาะ returned / rejected เท่านั้น
+enum HistoryFilter { all, returned, rejected }
 
 class _StaffHistoryPageState extends State<StaffHistoryPage> {
   late Future<List<HistoryItem>> _future;
@@ -81,8 +81,6 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
             context,
             MaterialPageRoute(builder: (context) => const StaffHandPage()),
           );
-        } else if (index == 3) {
-          // อยู่หน้า History แล้ว
         }
       },
       child: AnimatedContainer(
@@ -146,8 +144,11 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
               ),
             ),
             const SizedBox(height: 16),
+
             _buildFilterBar(),
+
             const SizedBox(height: 16),
+
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 24 + 84),
@@ -162,7 +163,7 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
     );
   }
 
-  // แถบปุ่ม filter
+  // Filter bar
   Widget _buildFilterBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -170,7 +171,6 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
         spacing: 8,
         children: [
           _filterChip('All', HistoryFilter.all),
-          _filterChip('Borrowing', HistoryFilter.borrowing),
           _filterChip('Returned', HistoryFilter.returned),
           _filterChip('Rejected', HistoryFilter.rejected),
         ],
@@ -197,25 +197,28 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
     );
   }
 
-  // กรอง list ตาม filter
+  // กรองเฉพาะ returned / rejected
   List<HistoryItem> _applyFilter(List<HistoryItem> all) {
     switch (_selectedFilter) {
       case HistoryFilter.all:
-        return all;
-      case HistoryFilter.borrowing:
-        return all
-            .where(
-              (x) => x.returnedDate == null && x.decisionStatus != 'rejected',
-            )
-            .toList();
+        return all.where((x) {
+          final s = x.decisionStatus.toLowerCase();
+          return s == 'returned' || s == 'rejected';
+        }).toList();
+
       case HistoryFilter.returned:
-        return all.where((x) => x.returnedDate != null).toList();
+        return all
+            .where((x) => x.decisionStatus.toLowerCase() == 'returned')
+            .toList();
+
       case HistoryFilter.rejected:
-        return all.where((x) => x.decisionStatus == 'rejected').toList();
+        return all
+            .where((x) => x.decisionStatus.toLowerCase() == 'rejected')
+            .toList();
     }
   }
 
-  // ----------------- Fetch history (เรียงตามวันที่ยืม) -----------------
+  // ----------------- Fetch history (เฉพาะ returned + rejected) -----------------
 
   Future<List<HistoryItem>> _fetchHistory() async {
     final userId = await AuthStorage.getUserId();
@@ -229,7 +232,6 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
       return [];
     }
 
-    // ดึงภาพรวมทุก staff ทุกสถานะ
     final url = Uri.parse('${AppConfig.baseUrl}/staff/history/all');
 
     final r = await http.get(url);
@@ -238,11 +240,16 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
     }
 
     final List data = jsonDecode(r.body) as List;
+
+    // map to model
     final list = data
         .map((e) => HistoryItem.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    // 🔥 เรียงตามวันที่ยืม (borrowDate ใหม่ → เก่า)
+    // กรอง timeout ออกตั้งแต่ backend response
+    list.removeWhere((x) => x.decisionStatus.toLowerCase() == 'timeout');
+
+    // เรียงตาม borrow date
     list.sort(
       (a, b) =>
           (b.borrowDate ?? DateTime(0)).compareTo(a.borrowDate ?? DateTime(0)),
@@ -314,7 +321,6 @@ class _HistoryCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // image
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: Container(
@@ -331,7 +337,6 @@ class _HistoryCard extends StatelessWidget {
           ),
           const SizedBox(width: 16),
 
-          // details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,21 +401,30 @@ class _HistoryCard extends StatelessWidget {
     'Dec',
   ];
 
+  // แสดงเฉพาะ returned / rejected
   static Widget _statusChip(HistoryItem x) {
-    if (x.decisionStatus == 'rejected') {
+    final status = x.decisionStatus.toLowerCase();
+
+    if (status == 'rejected') {
       return _chip(
         const Color(0xFFF07A7A),
         'Rejected: ${x.rejectionReason ?? '-'}',
       );
     }
-    if (x.returnedDate != null) {
-      final d =
-          '${x.returnedDate!.day.toString().padLeft(2, '0')} '
-          '${_mon[x.returnedDate!.month]} '
-          '${x.returnedDate!.year % 100}';
-      return _chip(const Color(0xFFDFFFAE), 'Returned: $d');
+
+    if (status == 'returned') {
+      final d = x.returnedDate != null
+          ? '${x.returnedDate!.day.toString().padLeft(2, '0')} '
+                '${_mon[x.returnedDate!.month]} '
+                '${x.returnedDate!.year % 100}'
+          : '';
+      return _chip(
+        const Color(0xFFDFFFAE),
+        d.isEmpty ? 'Returned' : 'Returned: $d',
+      );
     }
-    return _chip(const Color(0xFFAEE4FF), 'Borrowing: ${x.borrowerName}');
+
+    return _chip(Colors.white30, 'Unknown');
   }
 
   static Widget _chip(Color bg, String text) => Container(
