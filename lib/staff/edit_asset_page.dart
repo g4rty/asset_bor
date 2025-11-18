@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:asset_bor/config.dart';
+import 'package:http/http.dart' as http;
+import '../config.dart';
 
 class EditAssetPage extends StatefulWidget {
   final int assetId;
@@ -10,7 +10,7 @@ class EditAssetPage extends StatefulWidget {
   final String description;
   final int quantity;
   final String status;
-  final String? imageUrl;
+  final String imageUrl;
 
   const EditAssetPage({
     super.key,
@@ -19,7 +19,7 @@ class EditAssetPage extends StatefulWidget {
     required this.description,
     required this.quantity,
     required this.status,
-    this.imageUrl,
+    required this.imageUrl,
   });
 
   @override
@@ -45,32 +45,25 @@ class _EditAssetPageState extends State<EditAssetPage> {
     _status = widget.status;
   }
 
-  // เลือกรูปจาก gallery
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => _imageFile = File(picked.path));
-    }
+    if (picked != null) setState(() => _imageFile = File(picked.path));
   }
 
-  // บันทึก asset
   Future<void> _saveAsset() async {
     setState(() => _isSaving = true);
-
     int qty = int.tryParse(_quantityController.text) ?? 0;
-
-    // ถ้า quantity = 0 ให้ status เป็น Borrowed
-    String statusToSend = qty == 0 ? 'Borrowed' : _status;
+    String statusToSend = qty == 0 ? 'Out of Stock' : _status;
 
     final uri = Uri.parse(
-      '${AppConfig.baseUrl}/api/assets/${widget.assetId}',
+      '${AppConfig.baseUrl}/staff/assets/${widget.assetId}',
     );
     var request = http.MultipartRequest('PUT', uri);
 
     request.fields['name'] = _nameController.text;
     request.fields['description'] = _descController.text;
-    request.fields['quantity'] = _quantityController.text;
+    request.fields['quantity'] = qty.toString();
     request.fields['status'] = statusToSend;
 
     if (_imageFile != null) {
@@ -110,14 +103,14 @@ class _EditAssetPageState extends State<EditAssetPage> {
     }
   }
 
-  // ลบ asset
   Future<void> _deleteAsset() async {
     final uri = Uri.parse(
-      '${AppConfig.baseUrl}/api/assets/${widget.assetId}',
+      '${AppConfig.baseUrl}/staff/assets/${widget.assetId}',
     );
     try {
       final response = await http.delete(uri);
       if (!mounted) return;
+
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('🗑️ Asset deleted successfully')),
@@ -126,7 +119,7 @@ class _EditAssetPageState extends State<EditAssetPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Failed to delete asset: ${response.statusCode}'),
+            content: Text('❌ Failed to delete asset (${response.statusCode})'),
           ),
         );
       }
@@ -141,53 +134,62 @@ class _EditAssetPageState extends State<EditAssetPage> {
   void _showDeletePopup() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1F1F1F),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Are you sure you want to delete this item?',
-          style: TextStyle(color: Colors.white),
-        ),
-        actions: [
-          TextButton(
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFFD8FFA3),
-            ),
-            onPressed: () async {
-              Navigator.pop(context);
-              await _deleteAsset();
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.black)),
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1F1F1F),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          TextButton(
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFFFFA3A3),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.black)),
+          title: const Text(
+            'Are you sure to delete this item?',
+            style: TextStyle(color: Colors.white),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFD8FFA3),
+              ),
+              onPressed: () async {
+                Navigator.pop(context);
+                await _deleteAsset();
+              },
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFFFA3A3),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildImageWidget() {
     ImageProvider? imageProvider;
-
     if (_imageFile != null) {
       imageProvider = FileImage(_imageFile!);
-    } else if (widget.imageUrl != null) {
-      if (widget.imageUrl!.startsWith('http')) {
-        imageProvider = NetworkImage(widget.imageUrl!);
+    } else if (widget.imageUrl.isNotEmpty) {
+      if (widget.imageUrl.startsWith('http')) {
+        imageProvider = NetworkImage(widget.imageUrl);
       } else {
-        imageProvider = AssetImage(widget.imageUrl!);
+        imageProvider = AssetImage(widget.imageUrl);
       }
     }
 
     return GestureDetector(
       onTap: _pickImage,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           width: 150,
           height: 150,
@@ -202,6 +204,58 @@ class _EditAssetPageState extends State<EditAssetPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildStatusField() {
+    int qty = int.tryParse(_quantityController.text) ?? 0;
+
+    if (qty == 0) {
+      // quantity = 0 → แสดง Out of Stock
+      _status = 'Out of Stock';
+      return Container(
+        height: 50,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: const Color.fromARGB(
+            255,
+            111,
+            214,
+            255,
+          ), // สีเดียวกับ Borrowed เดิม
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Text(
+          'Out of Stock',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+      );
+    } else {
+      // quantity > 0 → Dropdown ปกติ
+      if (_status == 'Out of Stock') _status = 'Available';
+      return DropdownButtonFormField<String>(
+        value: _status,
+        dropdownColor: const Color(0xFF424242), // สี background ของ dropdown
+        items: const [
+          DropdownMenuItem(
+            value: 'Available',
+            child: Text('Available', style: TextStyle(color: Colors.white)),
+          ),
+          DropdownMenuItem(
+            value: 'Disable',
+            child: Text('Disable', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+        onChanged: (value) => setState(() => _status = value!),
+        decoration: const InputDecoration(
+          labelText: 'Status',
+          labelStyle: TextStyle(color: Colors.white70),
+          filled: true,
+          fillColor: Colors.white10,
+        ),
+        style: const TextStyle(color: Colors.white),
+      );
+    }
   }
 
   @override
@@ -224,10 +278,10 @@ class _EditAssetPageState extends State<EditAssetPage> {
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(child: _buildImageWidget()),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: _nameController,
                     style: const TextStyle(color: Colors.white),
@@ -261,45 +315,10 @@ class _EditAssetPageState extends State<EditAssetPage> {
                       filled: true,
                       fillColor: Colors.white10,
                     ),
-                    onChanged: (val) {
-                      int qty = int.tryParse(val) ?? 0;
-                      setState(() {
-                        _status = qty == 0 ? 'Borrowed' : _status;
-                      });
-                    },
+                    onChanged: (val) => setState(() {}),
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _status,
-                    dropdownColor: Colors.grey[900],
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Available',
-                        child: Text('Available'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Borrowed',
-                        child: Text('Borrowed'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Disable',
-                        child: Text('Disable'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      int qty = int.tryParse(_quantityController.text) ?? 0;
-                      if (qty == 0)
-                        return; // บังคับ status เป็น Borrowed ถ้า qty=0
-                      setState(() => _status = value!);
-                    },
-                    decoration: const InputDecoration(
-                      labelText: 'Status',
-                      labelStyle: TextStyle(color: Colors.white70),
-                      filled: true,
-                      fillColor: Colors.white10,
-                    ),
-                    style: const TextStyle(color: Colors.white),
-                  ),
+                  _buildStatusField(),
                   const SizedBox(height: 30),
                   SizedBox(
                     width: double.infinity,
