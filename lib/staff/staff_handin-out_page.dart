@@ -83,19 +83,7 @@ class _StaffHandPageState extends State<StaffHandPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ถ้าไม่อยากให้ Title ซ้ำกับ AppBar จะลบบล็อกนี้ออกก็ได้
             const SizedBox(height: 8),
-            // const Padding(
-            //   padding: EdgeInsets.symmetric(horizontal: 24),
-            //   child: Text(
-            //     "Hand-in / Hand-out",
-            //     style: TextStyle(
-            //       color: Colors.white,
-            //       fontSize: 22,
-            //       fontWeight: FontWeight.bold,
-            //     ),
-            //   ),
-            // ),
             const SizedBox(height: 20),
             _buildTabBar(),
             const SizedBox(height: 14),
@@ -214,10 +202,6 @@ class _StaffHandPageState extends State<StaffHandPage> {
       );
     };
   }
-
-  // ------------------------------------------------------------
-  //                     BOTTOM NAVIGATION
-  // ------------------------------------------------------------
 
   // ------------------------------------------------------------
   //                        API FETCH
@@ -398,52 +382,157 @@ class _HandCard extends StatelessWidget {
   }
 
   // ------------------------------------------------------------
-  //                   ACTION (DO HAND-IN / OUT)
+  //                   ACTION (DO HAND-IN / OUT) + POPUP
   // ------------------------------------------------------------
 
   Future<void> _doAction(BuildContext context) async {
     final userId = await AuthStorage.getUserId();
-    final base = AppConfig.baseUrl;
+    if (userId == null) {
+      // ถ้าไม่มี user ให้เด้งกลับหน้า login
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+      return;
+    }
 
+    final base = AppConfig.baseUrl;
     final actionLabel = isHandOut ? "Hand-out" : "Hand-in";
+
+    // ⭐⭐ Popup สไตล์ dark + ภาษาอังกฤษ ⭐⭐
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: const Color(0xFF2C2C2E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Confirm Action",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Are you sure you want to $actionLabel this item?",
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text(
+                        "Cancel",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD8FFA3),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        "Confirm",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // ถ้ากด Cancel หรือปิด dialog → ไม่ทำอะไรต่อ
+    if (confirm != true) return;
 
     final endpoint = isHandOut
         ? "$base/staff/$userId/handout/${item.requestId}"
         : "$base/staff/$userId/handin/${item.requestId}";
 
-    final res = await http.post(
-      Uri.parse(endpoint),
-      headers: await AuthStorage.withSessionCookie(null),
-    );
-
-    if (res.statusCode == 200) {
-      onActionDone();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: const Color(0xFF4CAF50), // เขียว success
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 10),
-              Text(
-                "$actionLabel success",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          duration: const Duration(seconds: 2),
-        ),
+    try {
+      final res = await http.post(
+        Uri.parse(endpoint),
+        headers: await AuthStorage.withSessionCookie(null),
       );
-    } else {
+
+      if (res.statusCode == 200) {
+        onActionDone();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF4CAF50), // เขียว success
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 10),
+                Text(
+                  "$actionLabel success",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 10),
+                Text(
+                  "Error: ${res.body}",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.redAccent,
@@ -457,7 +546,7 @@ class _HandCard extends StatelessWidget {
               const Icon(Icons.error, color: Colors.white),
               const SizedBox(width: 10),
               Text(
-                "Error: ${res.body}",
+                "Error: $e",
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
