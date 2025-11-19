@@ -288,9 +288,13 @@ class HistoryItem {
     staffName: j['staff_name'] as String?,
   );
 
-  static DateTime? _dt(dynamic s) => (s == null || (s is String && s.isEmpty))
-      ? null
-      : DateTime.parse(s as String);
+  // ⭐ แก้ให้วันที่ตรง: ตัดเวลาออก เหลือแต่ปี-เดือน-วัน
+  static DateTime? _dt(dynamic s) {
+    if (s == null || (s is String && s.isEmpty)) return null;
+
+    final d = DateTime.parse(s as String);
+    return DateTime(d.year, d.month, d.day); // ignore ชั่วโมง/ timezone
+  }
 }
 
 /* ---------- UI card ---------- */
