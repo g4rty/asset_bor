@@ -118,7 +118,7 @@ class LecturerHistoryState extends State<LecturerHistory> {
     final borrowPeriod =
         '${formatDate(item['borrow_date'] as String?)} - ${formatDate(item['return_date'] as String?)}';
     final actualReturn = formatDate(item['returned_date'] as String?);
-    final loanOutBy = (item['approver_name'] as String?)?.trim();
+    final loanOutBy = (item['loanout_name'] as String?)?.trim();
     final assetImage = item['asset_image'] as String?;
     String? approvedDate = (item['approval_date'] as String?);
     String? rejectionReason = (item['rejection_reason'] as String?);
