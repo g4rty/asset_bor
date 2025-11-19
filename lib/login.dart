@@ -8,7 +8,7 @@ import '/staff/staff_home_page.dart';
 import '/student/student_home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
+import 'shared/backend_image.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -41,20 +41,25 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await http.post(
-        // Uri.parse('${_backendBaseUrl()}/login'),
         Uri.parse('${AppConfig.baseUrl}/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': username, 'password': password}),
+        body: {'username': username, 'password': password},
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
 
+        final rawCookie = response.headers['set-cookie'];
+        if (rawCookie == null) {
+          throw Exception('No session cookie returned from server');
+        }
+        final sessionCookie = rawCookie.split(';').first;
+        await AuthStorage.setSessionCookie(sessionCookie);
+
         setState(() {
           _role = data['role'] as String?;
           userId = data['id'] as int;
         });
-  
+
         // Save user id.
         await AuthStorage.setUserId(userId!);
 
@@ -94,8 +99,10 @@ class _LoginPageState extends State<LoginPage> {
                   height: 1.4,
                 ),
               ),
-              actionsPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              actionsPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               actions: [
                 FilledButton(
                   style: FilledButton.styleFrom(
@@ -104,8 +111,10 @@ class _LoginPageState extends State<LoginPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
                   ),
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -133,7 +142,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
- void _showErrorDialog(String message) async {
+  void _showErrorDialog(String message) async {
     const accent = Color.fromARGB(255, 210, 245, 160);
     const dark = Color(0xFF1F1F1F);
     await showDialog(
@@ -161,8 +170,10 @@ class _LoginPageState extends State<LoginPage> {
               height: 1.4,
             ),
           ),
-          actionsPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actionsPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
           actions: [
             FilledButton(
               style: FilledButton.styleFrom(
@@ -171,8 +182,10 @@ class _LoginPageState extends State<LoginPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('OK'),
@@ -181,7 +194,7 @@ class _LoginPageState extends State<LoginPage> {
         );
       },
     );
-  } 
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +209,12 @@ class _LoginPageState extends State<LoginPage> {
             Container(
               width: 280,
               height: 280,
-              child: Image.asset('assets/images/login_dino.png'),
+              child: backendImageWidget(
+                'login_dino.png',
+                fit: BoxFit.contain,
+                placeholder: Image.asset('assets/images/login_dino.png'),
+                error: Image.asset('assets/images/login_dino.png'),
+              ),
             ),
             SizedBox(height: 30),
             Text(

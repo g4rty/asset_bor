@@ -57,7 +57,9 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
 
       final response = await http.post(
         Uri.parse('${AppConfig.baseUrl}/api/student/request_form'),
-        headers: {'Content-Type': 'application/json'},
+        headers: await AuthStorage.withSessionCookie({
+          'Content-Type': 'application/json',
+        }),
         body: json.encode({
           'asset_id': assetId,
           'borrower_id': borrowerId,

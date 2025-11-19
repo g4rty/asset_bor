@@ -38,6 +38,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
     try {
       final response = await http.get(
         Uri.parse('${AppConfig.baseUrl}/api/assets'),
+        headers: await AuthStorage.withSessionCookie(null),
       );
       print('Response status: ${response.statusCode}');
 

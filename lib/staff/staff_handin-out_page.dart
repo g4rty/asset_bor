@@ -227,7 +227,10 @@ class _StaffHandPageState extends State<StaffHandPage> {
     final userId = await AuthStorage.getUserId();
     final url = Uri.parse("${AppConfig.baseUrl}/staff/$userId/handout-queue");
 
-    final res = await http.get(url);
+    final res = await http.get(
+      url,
+      headers: await AuthStorage.withSessionCookie(null),
+    );
     final List data = jsonDecode(res.body);
 
     return data.map((e) => HandItem.fromJson(e)).toList();
@@ -237,7 +240,10 @@ class _StaffHandPageState extends State<StaffHandPage> {
     final userId = await AuthStorage.getUserId();
     final url = Uri.parse("${AppConfig.baseUrl}/staff/$userId/handin-queue");
 
-    final res = await http.get(url);
+    final res = await http.get(
+      url,
+      headers: await AuthStorage.withSessionCookie(null),
+    );
     final List data = jsonDecode(res.body);
 
     return data.map((e) => HandItem.fromJson(e)).toList();
@@ -405,7 +411,10 @@ class _HandCard extends StatelessWidget {
         ? "$base/staff/$userId/handout/${item.requestId}"
         : "$base/staff/$userId/handin/${item.requestId}";
 
-    final res = await http.post(Uri.parse(endpoint));
+    final res = await http.post(
+      Uri.parse(endpoint),
+      headers: await AuthStorage.withSessionCookie(null),
+    );
 
     if (res.statusCode == 200) {
       onActionDone();

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../../auth_storage.dart';
 import '../../login.dart';
+import '../config.dart';
 
 /// Icon button that logs the lecturer out after confirmation.
 class LogoutButton extends StatefulWidget {
-  const LogoutButton({
-    super.key,
-    this.iconColor = Colors.white,
-  });
+  const LogoutButton({super.key, this.iconColor = Colors.white});
 
   final Color iconColor;
 
@@ -35,6 +34,20 @@ class LogoutButtonState extends State<LogoutButton> {
     if (busy) return;
     setState(() => busy = true);
     try {
+      try {
+        final cookie = await AuthStorage.getSessionCookie();
+        final response = await http.post(
+          Uri.parse('${AppConfig.baseUrl}/logout'),
+          headers: cookie != null ? {'cookie': cookie} : null,
+        );
+        if (response.statusCode >= 400) {
+          debugPrint(
+            'Logout API failed: ${response.statusCode} ${response.body}',
+          );
+        }
+      } catch (e) {
+        debugPrint('Logout API error: $e');
+      }
       await AuthStorage.clearUserId();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
@@ -88,11 +101,7 @@ class LogoutDialog extends StatelessWidget {
       ),
       content: const Text(
         'Are you sure you want to log out?',
-        style: TextStyle(
-          color: Color(0xFFB0B0B0),
-          fontSize: 15,
-          height: 1.4,
-        ),
+        style: TextStyle(color: Color(0xFFB0B0B0), fontSize: 15, height: 1.4),
       ),
       actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       actions: [

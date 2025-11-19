@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:asset_bor/config.dart';
+import 'package:asset_bor/auth_storage.dart';
 import 'package:asset_bor/shared/backend_image.dart';
 import 'package:asset_bor/shared/logout.dart';
 import 'package:asset_bor/shared/navbar.dart';
@@ -35,6 +36,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
     try {
       final response = await http.get(
         Uri.parse('${AppConfig.baseUrl}/api/assets'),
+        headers: await AuthStorage.withSessionCookie(null),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

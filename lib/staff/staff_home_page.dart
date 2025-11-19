@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:asset_bor/config.dart';
+import 'package:asset_bor/auth_storage.dart';
 import 'package:asset_bor/shared/dashboard.dart';
 import 'package:asset_bor/staff/staff_assets_list.dart';
 import 'package:asset_bor/staff/staff_handin-out_page.dart';
@@ -37,7 +38,10 @@ class _StaffHomePageState extends State<StaffHomePage> {
     });
 
     try {
-      final response = await http.get(Uri.parse('${AppConfig.baseUrl}/counts'));
+      final response = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/counts'),
+        headers: await AuthStorage.withSessionCookie(null),
+      );
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
@@ -102,9 +106,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
         //     fontWeight: FontWeight.w600,
         //   ),
         // ),
-        actions: const [
-          LogoutButton(iconColor: Colors.white),
-        ],
+        actions: const [LogoutButton(iconColor: Colors.white)],
       ),
       body: SafeArea(
         child: buildDashboardBody(

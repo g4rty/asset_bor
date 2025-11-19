@@ -71,7 +71,10 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
         '${AppConfig.baseUrl}/api/student/status?borrowerId=$userId',
       );
 
-      final response = await http.get(url);
+      final response = await http.get(
+        url,
+        headers: await AuthStorage.withSessionCookie(null),
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -112,7 +115,9 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
 
     final res = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: await AuthStorage.withSessionCookie({
+        'Content-Type': 'application/json',
+      }),
       body: jsonEncode({'requestId': _itemId, 'borrowerId': userId}),
     );
 

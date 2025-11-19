@@ -130,7 +130,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       '${AppConfig.baseUrl}/api/student/history?studentId=$userId',
     );
 
-    final response = await http.get(url);
+    final response = await http.get(
+      url,
+      headers: await AuthStorage.withSessionCookie(null),
+    );
 
     if (response.statusCode != 200) {
       throw Exception('HTTP ${response.statusCode}: ${response.body}');
