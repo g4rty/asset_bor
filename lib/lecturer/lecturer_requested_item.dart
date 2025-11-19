@@ -219,117 +219,110 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
   }
 
   Future<void> confirmReject(Map<String, dynamic> item) async {
-    final controller = TextEditingController();
     String selected = rejectRequestOptions.first;
-    String? reason;
-    try {
-      reason = await showDialog<String>(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (_, setState) => AlertDialog(
-            backgroundColor: const Color(0xFF2C2C2E),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+    String customReason = '';
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (_, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF2C2C2E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Rejected Requests',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
             ),
-            title: const Text(
-              'Rejected Requests',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ...rejectRequestOptions.map(
-                    (option) => RadioListTile<String>(
-                      value: option,
-                      groupValue: selected,
-                      onChanged: (value) =>
-                          setState(() => selected = value ?? selected),
-                      activeColor: const Color(0xFFDFFFAE),
-                      title: Text(
-                        option,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  RadioListTile<String>(
-                    value: 'Other',
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ...rejectRequestOptions.map(
+                  (option) => RadioListTile<String>(
+                    value: option,
                     groupValue: selected,
                     onChanged: (value) =>
                         setState(() => selected = value ?? selected),
                     activeColor: const Color(0xFFDFFFAE),
-                    title: const Text(
-                      'Other',
-                      style: TextStyle(color: Colors.white),
+                    title: Text(
+                      option,
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
-                  if (selected == 'Other')
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3A3A3C),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: TextField(
-                        controller: controller,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                          hintText: 'Reason',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
-                        ),
+                ),
+                RadioListTile<String>(
+                  value: 'Other',
+                  groupValue: selected,
+                  onChanged: (value) =>
+                      setState(() => selected = value ?? selected),
+                  activeColor: const Color(0xFFDFFFAE),
+                  title: const Text(
+                    'Other',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                if (selected == 'Other')
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3A3A3C),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: TextField(
+                      onChanged: (value) => customReason = value,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        hintText: 'Reason',
+                        hintStyle: TextStyle(color: Colors.white54),
+                        border: InputBorder.none,
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
-            actions: [
-              TextButton(
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFDFFFAE),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                onPressed: () {
-                  final v = selected == 'Other'
-                      ? controller.text.trim()
-                      : selected;
-                  Navigator.pop(context, v);
-                },
-                child: const Text('Confirm'),
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFF07A7A),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-            ],
           ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFDFFFAE),
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              onPressed: () {
+                final v = selected == 'Other' ? customReason.trim() : selected;
+                Navigator.pop(context, v);
+              },
+              child: const Text('Confirm'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFF07A7A),
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
         ),
-      );
-    } finally {
-      controller.dispose();
-    }
+      ),
+    );
 
     if (reason != null && reason.trim().isNotEmpty) {
       await rejectAPI(item['request_id'] as int, reason.trim());

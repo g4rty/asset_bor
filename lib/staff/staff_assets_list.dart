@@ -21,6 +21,7 @@ class StaffAssetsList extends StatefulWidget {
 class _StaffAssetsListState extends State<StaffAssetsList> {
   int _selectedIndex = 1;
   final Color _scaffoldBgColor = const Color.fromARGB(255, 39, 39, 39);
+  final Color _accentColor = const Color(0xFFD8FFA3);
 
   List<dynamic> assets = [];
 
@@ -234,6 +235,10 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                       );
                       if (newAsset != null) fetchAssets();
                     },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 82, 243, 255),
+                      foregroundColor: Colors.black,
+                    ),
                     label: const Text('Add'),
                     icon: const Icon(Icons.create_new_folder_sharp),
                   ),

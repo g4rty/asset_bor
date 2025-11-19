@@ -7,6 +7,7 @@ import '../../login.dart';
 import 'cancel_status_screen.dart';
 import 'history_screen.dart';
 import 'student_assets_list.dart';
+import 'package:asset_bor/shared/backend_image.dart';
 
 class StudentHomePage extends StatefulWidget {
   const StudentHomePage({super.key});
@@ -50,13 +51,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
             )
             .map((asset) {
               final imageFile = ((asset['image'] as String?) ?? '').trim();
-              final imageUrl = () {
-                if (imageFile.isEmpty) return 'assets/images/placeholder.png';
-                if (imageFile.startsWith('http')) return imageFile;
-                return imageFile.contains('-')
-                    ? '${AppConfig.baseUrl}/uploads/$imageFile'
-                    : 'assets/images/$imageFile';
-              }();
+              final imageUrl = backendImageUrl(imageFile);
               return {...asset as Map<String, dynamic>, 'imageUrl': imageUrl};
             })
             .toList()
@@ -307,7 +302,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
   }
 
   Widget _buildAssetCard({
-    required String imageUrl,
+    required String? imageUrl,
     required String title,
     required String subtitle,
     required int assetId,
@@ -353,32 +348,14 @@ class _StudentHomePageState extends State<StudentHomePage> {
                   color: Colors.black26,
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: Builder(
-                  builder: (context) {
-                    if (imageUrl.isEmpty) {
-                      return const Icon(
-                        Icons.image_outlined,
-                        color: Colors.white24,
-                        size: 32,
-                      );
-                    }
-                    if (imageUrl.startsWith('http')) {
-                      return Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.broken_image,
-                          color: Colors.white30,
-                        ),
-                      );
-                    }
-                    return Image.asset(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.broken_image, color: Colors.white30),
-                    );
-                  },
+                child: backendImageWidget(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: const Icon(
+                    Icons.image_outlined,
+                    color: Colors.white24,
+                    size: 32,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),

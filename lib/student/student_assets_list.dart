@@ -7,6 +7,7 @@ import 'student_home_page.dart';
 import 'student_request_form.dart';
 import 'package:asset_bor/student/history_screen.dart';
 import '../config.dart';
+import 'package:asset_bor/shared/backend_image.dart';
 import '../../auth_storage.dart';
 import '../../login.dart';
 
@@ -80,13 +81,7 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
           assets.addAll(
             data.map((e) {
               final imageFile = (e['image'] as String?) ?? '';
-              final hasImage = imageFile.isNotEmpty;
-              final isUploadFile = imageFile.contains('-');
-              final imageUrl = !hasImage
-                  ? 'assets/images/placeholder.png'
-                  : isUploadFile
-                  ? '${AppConfig.baseUrl}/uploads/$imageFile'
-                  : 'assets/images/$imageFile';
+              final imageUrl = backendImageUrl(imageFile);
               return {
                 'id': e['asset_id'],
                 'name': e['asset_name'] ?? 'Unnamed',
@@ -344,36 +339,14 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
                               borderRadius: BorderRadius.circular(14),
                               color: Colors.black26,
                             ),
-                            child: Builder(
-                              builder: (context) {
-                                final imageUrl =
-                                    asset['imageUrl'] as String? ?? '';
-                                if (imageUrl.isEmpty) {
-                                  return const Icon(
-                                    Icons.image_outlined,
-                                    color: Colors.white30,
-                                    size: 32,
-                                  );
-                                }
-                                if (imageUrl.startsWith('http')) {
-                                  return Image.network(
-                                    imageUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(
-                                      Icons.broken_image,
-                                      color: Colors.white30,
-                                    ),
-                                  );
-                                }
-                                return Image.asset(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.broken_image,
-                                    color: Colors.white30,
-                                  ),
-                                );
-                              },
+                            child: backendImageWidget(
+                              asset['imageUrl'] as String?,
+                              fit: BoxFit.cover,
+                              placeholder: const Icon(
+                                Icons.image_outlined,
+                                color: Colors.white30,
+                                size: 32,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),

@@ -351,14 +351,14 @@ class _HandCard extends StatelessWidget {
           ),
 
           // ---------------- BUTTON ----------------
-          ElevatedButton(
+          TextButton(
             onPressed: () => _doAction(context),
-            style: ElevatedButton.styleFrom(
+            style: TextButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(24),
               ),
             ),
             child: Text(

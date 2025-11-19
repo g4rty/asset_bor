@@ -126,7 +126,11 @@ class LecturerHistoryState extends State<LecturerHistory> {
     Color fg;
     String statusMsg;
 
-    if (requestStatus == 'approved' || requestStatus == 'timeout') {
+    if (requestStatus == 'returned') {
+      bg = const Color(0xFFD9FFA3);
+      fg = Colors.black;
+      statusMsg = 'Returned: ${actualReturn == '-' ? '-' : actualReturn}';
+    } else if (requestStatus == 'approved' || requestStatus == 'timeout') {
       bg = const Color(0xFFD9FFA3);
       fg = const Color(0xFF396001);
       statusMsg = 'Approved';
