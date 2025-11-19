@@ -8,6 +8,7 @@ import 'package:asset_bor/staff/staff_assets_list.dart';
 import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:asset_bor/staff/staff_home_page.dart';
 import 'package:http/http.dart' as http;
+import 'package:asset_bor/shared/logout.dart'; // ⭐ ปุ่ม Logout
 
 class StaffHistoryPage extends StatefulWidget {
   const StaffHistoryPage({super.key});
@@ -16,8 +17,8 @@ class StaffHistoryPage extends StatefulWidget {
   State<StaffHistoryPage> createState() => _StaffHistoryPageState();
 }
 
-// ใช้เฉพาะ returned / rejected เท่านั้น
-enum HistoryFilter { all, returned, rejected }
+// เดิมใช้เฉพาะ returned / rejected ตอนนี้เพิ่ม pending ด้วย
+enum HistoryFilter { all, returned, rejected, pending }
 
 class _StaffHistoryPageState extends State<StaffHistoryPage> {
   late Future<List<HistoryItem>> _future;
@@ -37,6 +38,19 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 39, 39, 39),
+
+      // ⭐ AppBar พร้อมปุ่ม Logout
+      appBar: AppBar(
+        backgroundColor: const Color.fromARGB(255, 39, 39, 39),
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: const Text(
+          'History',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        actions: const [LogoutButton(iconColor: Colors.white)],
+      ),
+
       body: SafeArea(child: _buildBody()),
       bottomNavigationBar: _buildBottomNavBar(),
     );
@@ -131,18 +145,6 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 24),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                'History',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
             const SizedBox(height: 16),
 
             _buildFilterBar(),
@@ -173,6 +175,7 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
           _filterChip('All', HistoryFilter.all),
           _filterChip('Returned', HistoryFilter.returned),
           _filterChip('Rejected', HistoryFilter.rejected),
+          _filterChip('Pending', HistoryFilter.pending), // ⭐ ปุ่มใหม่
         ],
       ),
     );
@@ -197,13 +200,14 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
     );
   }
 
-  // กรองเฉพาะ returned / rejected
+  // กรอง returned / rejected / pending
   List<HistoryItem> _applyFilter(List<HistoryItem> all) {
     switch (_selectedFilter) {
       case HistoryFilter.all:
+        // รวม 3 สถานะนี้
         return all.where((x) {
           final s = x.decisionStatus.toLowerCase();
-          return s == 'returned' || s == 'rejected';
+          return s == 'returned' || s == 'rejected' || s == 'pending';
         }).toList();
 
       case HistoryFilter.returned:
@@ -215,10 +219,15 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
         return all
             .where((x) => x.decisionStatus.toLowerCase() == 'rejected')
             .toList();
+
+      case HistoryFilter.pending:
+        return all
+            .where((x) => x.decisionStatus.toLowerCase() == 'pending')
+            .toList();
     }
   }
 
-  // ----------------- Fetch history (เฉพาะ returned + rejected) -----------------
+  // ----------------- Fetch history (เฉพาะ returned + rejected + pending) -----------------
 
   Future<List<HistoryItem>> _fetchHistory() async {
     final userId = await AuthStorage.getUserId();
@@ -263,6 +272,7 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
 
 class HistoryItem {
   final int requestId;
+  final int assetId; // ⭐ Asset ID
   final String decisionStatus;
   final String? rejectionReason;
   final String assetName;
@@ -272,6 +282,7 @@ class HistoryItem {
 
   HistoryItem({
     required this.requestId,
+    required this.assetId,
     required this.decisionStatus,
     required this.assetName,
     required this.borrowerName,
@@ -285,6 +296,7 @@ class HistoryItem {
 
   factory HistoryItem.fromJson(Map<String, dynamic> j) => HistoryItem(
     requestId: j['request_id'] as int,
+    assetId: j['asset_id'] as int,
     decisionStatus: j['decision_status'] as String,
     rejectionReason: j['rejection_reason'] as String?,
     assetName: j['asset_name'] as String,
@@ -341,6 +353,22 @@ class _HistoryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // หัว Request + Asset ID
+                Row(
+                  children: [
+                    Text(
+                      'Request ${item.requestId} • Asset ${item.assetId}',
+                      style: const TextStyle(
+                        color: Color(0xFF8DF18C),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 6),
+
                 _line('Item', item.assetName),
                 _line('Borrower', item.borrowerName),
                 _line('Date', _range(item.borrowDate, item.returnDate)),
@@ -401,7 +429,7 @@ class _HistoryCard extends StatelessWidget {
     'Dec',
   ];
 
-  // แสดงเฉพาะ returned / rejected
+  // แสดง returned / rejected / pending
   static Widget _statusChip(HistoryItem x) {
     final status = x.decisionStatus.toLowerCase();
 
@@ -421,6 +449,13 @@ class _HistoryCard extends StatelessWidget {
       return _chip(
         const Color(0xFFDFFFAE),
         d.isEmpty ? 'Returned' : 'Returned: $d',
+      );
+    }
+
+    if (status == 'pending') {
+      return _chip(
+        const Color(0xFFABE0FF), // ฟ้าอ่อนสำหรับ pending
+        'Pending',
       );
     }
 
