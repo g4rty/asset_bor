@@ -72,6 +72,7 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     try {
       final response = await http.get(
         Uri.parse('${AppConfig.baseUrl}/api/assets'),
+        headers: await AuthStorage.withSessionCookie(null),
       );
 
       if (response.statusCode == 200) {
@@ -111,7 +112,10 @@ class _StudentAssetsListState extends State<StudentAssetsList> {
     final url = Uri.parse(
       '${AppConfig.baseUrl}/api/student/assetlist?borrowerId=$userId',
     );
-    final res = await http.get(url);
+    final res = await http.get(
+      url,
+      headers: await AuthStorage.withSessionCookie(null),
+    );
 
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import '../config.dart';
+import 'package:asset_bor/auth_storage.dart';
 
 class EditAssetPage extends StatefulWidget {
   final int assetId;
@@ -61,6 +62,9 @@ class _EditAssetPageState extends State<EditAssetPage> {
       '${AppConfig.baseUrl}/staff/assets/${widget.assetId}',
     );
     var request = http.MultipartRequest('PUT', uri);
+    request.headers.addAll(
+      await AuthStorage.withSessionCookie(request.headers),
+    );
 
     request.fields['name'] = _nameController.text;
     request.fields['description'] = _descController.text;
@@ -110,7 +114,10 @@ class _EditAssetPageState extends State<EditAssetPage> {
     );
 
     try {
-      final response = await http.delete(uri);
+      final response = await http.delete(
+        uri,
+        headers: await AuthStorage.withSessionCookie(null),
+      );
       if (!mounted) return;
 
       final body = jsonDecode(response.body);

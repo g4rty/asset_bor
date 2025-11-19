@@ -57,7 +57,10 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
 
     try {
       final url = Uri.parse('${AppConfig.baseUrl}/lecturers/requests/pending');
-      final response = await http.get(url);
+      final response = await http.get(
+        url,
+        headers: await AuthStorage.withSessionCookie(null),
+      );
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
@@ -86,7 +89,9 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
     );
     final response = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: await AuthStorage.withSessionCookie({
+        'Content-Type': 'application/json',
+      }),
       body: jsonEncode({'lecturerId': userId}),
     );
     if (response.statusCode != 200) {
@@ -102,7 +107,9 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
     );
     final response = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: await AuthStorage.withSessionCookie({
+        'Content-Type': 'application/json',
+      }),
       body: jsonEncode({'lecturerId': userId, 'reason': reason}),
     );
     if (response.statusCode != 200) {

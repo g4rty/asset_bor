@@ -49,7 +49,10 @@ class _LecturerHomePageState extends State<LecturerHomePage> {
     });
 
     try {
-      final response = await http.get(Uri.parse('${AppConfig.baseUrl}/counts'));
+      final response = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/counts'),
+        headers: await AuthStorage.withSessionCookie(null),
+      );
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
@@ -110,9 +113,7 @@ class _LecturerHomePageState extends State<LecturerHomePage> {
           'Assets',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
-        actions: const [
-          LogoutButton(iconColor: Colors.white),
-        ],
+        actions: const [LogoutButton(iconColor: Colors.white)],
       ),
       body: SafeArea(
         child: buildDashboardBody(

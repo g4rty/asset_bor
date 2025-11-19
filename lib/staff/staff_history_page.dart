@@ -207,7 +207,10 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
 
     final url = Uri.parse('${AppConfig.baseUrl}/staff/history/all');
 
-    final r = await http.get(url);
+    final r = await http.get(
+      url,
+      headers: await AuthStorage.withSessionCookie(null),
+    );
     if (r.statusCode != 200) {
       throw Exception('HTTP ${r.statusCode}: ${r.body}');
     }

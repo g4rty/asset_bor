@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'auth_storage.dart';
 
 import '/config.dart';
 import '/login.dart';
@@ -43,8 +44,14 @@ class _RegisterPageState extends State<RegisterPage> {
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    if ([firstName, lastName, username, email, password, confirmPassword]
-        .any((value) => value.isEmpty)) {
+    if ([
+      firstName,
+      lastName,
+      username,
+      email,
+      password,
+      confirmPassword,
+    ].any((value) => value.isEmpty)) {
       await _showErrorDialog('Please complete all fields.');
       return;
     }
@@ -69,7 +76,9 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       final response = await http.post(
         Uri.parse('${AppConfig.baseUrl}/register'),
-        headers: {'Content-Type': 'application/json'},
+        headers: await AuthStorage.withSessionCookie({
+          'Content-Type': 'application/json',
+        }),
         body: jsonEncode({
           'first_name': firstName,
           'last_name': lastName,
@@ -88,12 +97,13 @@ class _RegisterPageState extends State<RegisterPage> {
             : response.body;
         await _showSuccessDialog(message);
         if (!mounted) return;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginPage()),
-        );
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
       } else {
-        final message =
-            response.body.isEmpty ? 'Registration failed.' : response.body;
+        final message = response.body.isEmpty
+            ? 'Registration failed.'
+            : response.body;
         await _showErrorDialog(message);
       }
     } catch (error) {
@@ -114,9 +124,7 @@ class _RegisterPageState extends State<RegisterPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: dark,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
         title: const Text(
           'Error',
@@ -146,10 +154,7 @@ class _RegisterPageState extends State<RegisterPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('OK'),
@@ -166,9 +171,7 @@ class _RegisterPageState extends State<RegisterPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: dark,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
         title: const Text(
           'Account created',
@@ -198,10 +201,7 @@ class _RegisterPageState extends State<RegisterPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Continue'),
@@ -337,8 +337,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             height: 24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.black),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.black,
+                              ),
                             ),
                           )
                         : const Text(
@@ -366,10 +367,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         );
                       },
-                      child: Text(
-                        'Sign in',
-                        style: TextStyle(color: accent),
-                      ),
+                      child: Text('Sign in', style: TextStyle(color: accent)),
                     ),
                   ],
                 ),

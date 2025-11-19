@@ -42,6 +42,7 @@ class LecturerHistoryState extends State<LecturerHistory> {
 
     final response = await http.get(
       Uri.parse('${AppConfig.baseUrl}/lecturers/$userId/history'),
+      headers: await AuthStorage.withSessionCookie(null),
     );
     if (response.statusCode != 200) {
       throw Exception('HTTP ${response.statusCode}: ${response.body}');

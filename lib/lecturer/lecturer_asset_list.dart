@@ -39,6 +39,7 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
     try {
       final response = await http.get(
         Uri.parse('${AppConfig.baseUrl}/lecturers/assets'),
+        headers: await AuthStorage.withSessionCookie(null),
       );
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');

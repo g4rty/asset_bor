@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:asset_bor/config.dart';
+import 'package:asset_bor/auth_storage.dart';
 
 class AddAssetPage extends StatefulWidget {
   const AddAssetPage({super.key});
@@ -50,6 +51,9 @@ class _AddAssetPageState extends State<AddAssetPage> {
       '${AppConfig.baseUrl}/staff/assets',
     ); // ⚠️ Replace with your backend URL
     final request = http.MultipartRequest('POST', uri);
+    request.headers.addAll(
+      await AuthStorage.withSessionCookie(request.headers),
+    );
 
     request.fields['name'] = _nameController.text;
     request.fields['description'] = _descriptionController.text;
