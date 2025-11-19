@@ -9,7 +9,9 @@ import '../login.dart';
 import 'staff_assets_list.dart';
 import 'staff_history_page.dart';
 import 'staff_home_page.dart';
+import 'package:asset_bor/shared/backend_image.dart';
 import 'package:asset_bor/shared/logout.dart'; // ⭐ เพิ่ม import ปุ่ม logout
+import 'package:asset_bor/shared/navbar.dart';
 
 class StaffHandPage extends StatefulWidget {
   const StaffHandPage({super.key});
@@ -40,6 +42,26 @@ class _StaffHandPageState extends State<StaffHandPage> {
     _futureHandIn = _fetchHandInQueue();
   }
 
+  void handleNavTap(int index) {
+    if (index == _selectedIndex) return;
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const StaffHomePage()),
+      );
+    } else if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const StaffAssetsList()),
+      );
+    } else if (index == 3) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const StaffHistoryPage()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,17 +85,17 @@ class _StaffHandPageState extends State<StaffHandPage> {
           children: [
             // ถ้าไม่อยากให้ Title ซ้ำกับ AppBar จะลบบล็อกนี้ออกก็ได้
             const SizedBox(height: 8),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                "Hand-in / Hand-out",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            // const Padding(
+            //   padding: EdgeInsets.symmetric(horizontal: 24),
+            //   child: Text(
+            //     "Hand-in / Hand-out",
+            //     style: TextStyle(
+            //       color: Colors.white,
+            //       fontSize: 22,
+            //       fontWeight: FontWeight.bold,
+            //     ),
+            //   ),
+            // ),
             const SizedBox(height: 20),
             _buildTabBar(),
             const SizedBox(height: 14),
@@ -81,7 +103,7 @@ class _StaffHandPageState extends State<StaffHandPage> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
+      bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavTap),
     );
   }
 
@@ -197,60 +219,6 @@ class _StaffHandPageState extends State<StaffHandPage> {
   //                     BOTTOM NAVIGATION
   // ------------------------------------------------------------
 
-  Widget _buildBottomNavBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      color: Colors.black,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(Icons.home, 0),
-          _buildNavItem(Icons.shopping_bag_outlined, 1),
-          _buildNavItem(Icons.list_alt_outlined, 2),
-          _buildNavItem(Icons.history, 3),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, int index) {
-    bool selected = _selectedIndex == index;
-
-    return GestureDetector(
-      onTap: () async {
-        setState(() {
-          _selectedIndex = index;
-        });
-
-        if (index == 0) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StaffHomePage()),
-          );
-        } else if (index == 1) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StaffAssetsList()),
-          );
-        } else if (index == 3) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StaffHistoryPage()),
-          );
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: selected ? _accentColor : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: selected ? Colors.black : Colors.white),
-      ),
-    );
-  }
-
   // ------------------------------------------------------------
   //                        API FETCH
   // ------------------------------------------------------------
@@ -344,12 +312,15 @@ class _HandCard extends StatelessWidget {
               width: 90,
               height: 90,
               color: const Color(0xFF2C2C2E),
-              child: item.assetImage != null
-                  ? Image.asset(
-                      "assets/images/${item.assetImage}",
-                      fit: BoxFit.cover,
-                    )
-                  : const Icon(Icons.image, color: Colors.white24, size: 32),
+              child: backendImageWidget(
+                item.assetImage,
+                fit: BoxFit.cover,
+                placeholder: const Icon(
+                  Icons.image,
+                  color: Colors.white24,
+                  size: 32,
+                ),
+              ),
             ),
           ),
 
