@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -107,9 +108,13 @@ class _EditAssetPageState extends State<EditAssetPage> {
     final uri = Uri.parse(
       '${AppConfig.baseUrl}/staff/assets/${widget.assetId}',
     );
+
     try {
       final response = await http.delete(uri);
       if (!mounted) return;
+
+      final body = jsonDecode(response.body);
+      final message = body['message'] ?? 'Unknown error';
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -118,9 +123,7 @@ class _EditAssetPageState extends State<EditAssetPage> {
         Navigator.pop(context, {'action': 'delete', 'assetId': widget.assetId});
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Failed to delete asset (${response.statusCode})'),
-          ),
+          SnackBar(content: Text('❌ $message (${response.statusCode})')),
         );
       }
     } catch (e) {

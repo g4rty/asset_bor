@@ -238,7 +238,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
                   // Status Dropdown
                   DropdownButtonFormField<String>(
                     value: _status,
-                    items: ['Available', 'Borrowed', 'Disabled']
+                    items: ['Available', 'Disabled']
                         .map(
                           (status) => DropdownMenuItem(
                             value: status,
