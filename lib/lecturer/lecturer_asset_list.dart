@@ -5,6 +5,7 @@ import 'package:asset_bor/config.dart';
 import 'package:asset_bor/lecturer/lecturer_history.dart';
 import 'package:asset_bor/lecturer/lecturer_home_page.dart';
 import 'package:asset_bor/lecturer/lecturer_requested_item.dart';
+import 'package:asset_bor/shared/backend_image.dart';
 import 'package:asset_bor/shared/logout.dart';
 import 'package:asset_bor/shared/navbar.dart';
 import 'package:asset_bor/login.dart';
@@ -118,14 +119,6 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
   }
 
   Widget buildAssetCard(int index, Map<String, dynamic> item) {
-    final rawImagePath = ((item['image'] as String?) ?? '').trim();
-    final imageUrl = () {
-      if (rawImagePath.isEmpty) return '';
-      if (rawImagePath.startsWith('http')) return rawImagePath;
-      return rawImagePath.contains('-')
-          ? '${AppConfig.baseUrl}/uploads/$rawImagePath'
-          : 'assets/images/$rawImagePath';
-    }();
     final status = ((item['asset_status'] as String?) ?? '').trim();
     final name = ((item['asset_name'] as String?) ?? '').trim();
 
@@ -169,19 +162,15 @@ class _LecturerAssetListState extends State<LecturerAssetList> {
               width: 130,
               height: 130,
               color: const Color(0xFF2C2C2E),
-              child: (() {
-                if (imageUrl.isEmpty) {
-                  return const Icon(
-                    Icons.image,
-                    color: Colors.white24,
-                    size: 36,
-                  );
-                }
-                if (imageUrl.startsWith('http')) {
-                  return Image.network(imageUrl, fit: BoxFit.cover);
-                }
-                return Image.asset(imageUrl, fit: BoxFit.cover);
-              }()),
+              child: backendImageWidget(
+                item['image'] as String?,
+                fit: BoxFit.cover,
+                placeholder: const Icon(
+                  Icons.image,
+                  color: Colors.white24,
+                  size: 36,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 16),

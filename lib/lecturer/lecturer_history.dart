@@ -6,6 +6,7 @@ import '../login.dart';
 import 'lecturer_asset_list.dart';
 import 'lecturer_home_page.dart';
 import 'lecturer_requested_item.dart';
+import '../shared/backend_image.dart';
 import '../shared/navbar.dart';
 import '../shared/logout.dart';
 import 'package:flutter/material.dart';
@@ -112,14 +113,12 @@ class LecturerHistoryState extends State<LecturerHistory> {
     return '$day $month $year';
   }
 
-
-
   Widget buildHistoryCard(Map<String, dynamic> item) {
     final borrowPeriod =
         '${formatDate(item['borrow_date'] as String?)} - ${formatDate(item['return_date'] as String?)}';
     final actualReturn = formatDate(item['returned_date'] as String?);
     final loanOutBy = (item['approver_name'] as String?)?.trim();
-    final assetImage = (item['asset_image'] as String?)?.trim();
+    final assetImage = item['asset_image'] as String?;
     String? approvedDate = (item['approval_date'] as String?);
     String? rejectionReason = (item['rejection_reason'] as String?);
     String? requestStatus = item['decision_status'] as String?;
@@ -134,15 +133,9 @@ class LecturerHistoryState extends State<LecturerHistory> {
     } else {
       bg = const Color(0xFFED7575);
       fg = Colors.white;
-      statusMsg =
-          rejectionReason == null || rejectionReason.isEmpty ? 'Rejected' : 'Rejected: $rejectionReason';
-    }
-
-    Widget imageBox;
-    if (assetImage == null || assetImage.isEmpty) {
-      imageBox = const Icon(Icons.image, color: Colors.white24, size: 36);
-    } else {
-      imageBox = Image.asset('assets/images/$assetImage', fit: BoxFit.cover);
+      statusMsg = rejectionReason == null || rejectionReason.isEmpty
+          ? 'Rejected'
+          : 'Rejected: $rejectionReason';
     }
 
     return Container(
@@ -160,7 +153,15 @@ class LecturerHistoryState extends State<LecturerHistory> {
               width: 110,
               height: 110,
               color: const Color(0xFF2C2C2E),
-              child: imageBox,
+              child: backendImageWidget(
+                assetImage,
+                fit: BoxFit.cover,
+                placeholder: const Icon(
+                  Icons.image,
+                  color: Colors.white24,
+                  size: 36,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -187,7 +188,7 @@ class LecturerHistoryState extends State<LecturerHistory> {
                 ),
                 // const SizedBox(height: 6),
                 Text(
-                  'Reviewd on: ${approvedDate== null || approvedDate.isEmpty ? '-' : formatDateWithTime(approvedDate)}',
+                  'Reviewd on: ${approvedDate == null || approvedDate.isEmpty ? '-' : formatDateWithTime(approvedDate)}',
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                 ),
                 Text(
@@ -238,7 +239,6 @@ class LecturerHistoryState extends State<LecturerHistory> {
       ),
     );
   }
-  
 
   void handleNavTap(int index) {
     if (index == 3) return;
@@ -259,8 +259,7 @@ class LecturerHistoryState extends State<LecturerHistory> {
       );
     }
   }
-  
-  
+
   @override
   Widget build(BuildContext context) {
     const background = Color(0xFF1F1F1F);
@@ -348,11 +347,7 @@ class LecturerHistoryState extends State<LecturerHistory> {
           ),
         ),
       ),
-      bottomNavigationBar: NavBar(
-        index: 3,
-        onTap: handleNavTap
-      ),
+      bottomNavigationBar: NavBar(index: 3, onTap: handleNavTap),
     );
   }
-
 }

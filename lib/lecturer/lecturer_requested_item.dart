@@ -5,6 +5,7 @@ import 'package:asset_bor/config.dart';
 import 'package:asset_bor/lecturer/lecturer_asset_list.dart';
 import 'package:asset_bor/lecturer/lecturer_history.dart';
 import 'package:asset_bor/lecturer/lecturer_home_page.dart';
+import 'package:asset_bor/shared/backend_image.dart';
 import 'package:asset_bor/shared/logout.dart';
 import 'package:asset_bor/shared/navbar.dart';
 import 'package:asset_bor/login.dart';
@@ -80,7 +81,9 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
   Future approveAPI(int requestId) async {
     final userId = await AuthStorage.getUserId();
     if (userId == null) return;
-    final url = Uri.parse('${AppConfig.baseUrl}/lecturers/requests/$requestId/approve');
+    final url = Uri.parse(
+      '${AppConfig.baseUrl}/lecturers/requests/$requestId/approve',
+    );
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -94,7 +97,9 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
   Future rejectAPI(int requestId, String reason) async {
     final userId = await AuthStorage.getUserId();
     if (userId == null) return;
-    final url = Uri.parse('${AppConfig.baseUrl}/lecturers/requests/$requestId/reject');
+    final url = Uri.parse(
+      '${AppConfig.baseUrl}/lecturers/requests/$requestId/reject',
+    );
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -129,23 +134,15 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
                   width: 64,
                   height: 64,
                   color: const Color(0xFF2C2C2E),
-                  child: (() {
-                    final path = item['asset_image'] as String?;
-                    if (path == null || path.trim().isEmpty) {
-                      return const Icon(
-                        Icons.image,
-                        color: Colors.white24,
-                        size: 28,
-                      );
-                    }
-                    if (path.startsWith('http')) {
-                      return Image.network(path, fit: BoxFit.cover);
-                    }
-                    return Image.asset(
-                      'assets/images/$path',
-                      fit: BoxFit.cover,
-                    );
-                  }()),
+                  child: backendImageWidget(
+                    item['asset_image'] as String?,
+                    fit: BoxFit.cover,
+                    placeholder: const Icon(
+                      Icons.image,
+                      color: Colors.white24,
+                      size: 28,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -375,8 +372,6 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
     final borrowDate = item['borrow_date'];
     final returnDate = item['return_date'];
     final reason = ((item['reason'] as String?) ?? '').trim();
-    final imagePath = ((item['asset_image'] as String?) ?? '').trim();
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -392,22 +387,15 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
               width: 110,
               height: 110,
               color: const Color(0xFF2C2C2E),
-              child: (() {
-                if (imagePath.isEmpty) {
-                  return const Icon(
-                    Icons.image,
-                    color: Colors.white24,
-                    size: 36,
-                  );
-                }
-                if (imagePath.startsWith('http')) {
-                  return Image.network(imagePath, fit: BoxFit.cover);
-                }
-                return Image.asset(
-                  'assets/images/$imagePath',
-                  fit: BoxFit.cover,
-                );
-              }()),
+              child: backendImageWidget(
+                item['asset_image'] as String?,
+                fit: BoxFit.cover,
+                placeholder: const Icon(
+                  Icons.image,
+                  color: Colors.white24,
+                  size: 36,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 16),
