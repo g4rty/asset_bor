@@ -48,6 +48,17 @@ class _StudentHomePageState extends State<StudentHomePage> {
                   asset['asset_status'] == 'Available' &&
                   (asset['quantity'] ?? 1) > 0,
             )
+            .map((asset) {
+              final imageFile = ((asset['image'] as String?) ?? '').trim();
+              final imageUrl = () {
+                if (imageFile.isEmpty) return 'assets/images/placeholder.png';
+                if (imageFile.startsWith('http')) return imageFile;
+                return imageFile.contains('-')
+                    ? '${AppConfig.baseUrl}/uploads/$imageFile'
+                    : 'assets/images/$imageFile';
+              }();
+              return {...asset as Map<String, dynamic>, 'imageUrl': imageUrl};
+            })
             .toList()
             .reversed
             .toList();
@@ -231,8 +242,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16.0),
                         child: _buildAssetCard(
-                          imagePath:
-                              'assets/images/${asset['image'] ?? 'placeholder.png'}',
+                          imageUrl: asset['imageUrl'] as String? ?? '',
                           title: asset['asset_name'] ?? 'Unnamed',
                           subtitle: asset['asset_status'] ?? '',
                           assetId: asset['asset_id'],
@@ -297,7 +307,7 @@ class _StudentHomePageState extends State<StudentHomePage> {
   }
 
   Widget _buildAssetCard({
-    required String imagePath,
+    required String imageUrl,
     required String title,
     required String subtitle,
     required int assetId,
@@ -340,10 +350,35 @@ class _StudentHomePageState extends State<StudentHomePage> {
                 height: 90,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  image: DecorationImage(
-                    image: AssetImage(imagePath),
-                    fit: BoxFit.cover,
-                  ),
+                  color: Colors.black26,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Builder(
+                  builder: (context) {
+                    if (imageUrl.isEmpty) {
+                      return const Icon(
+                        Icons.image_outlined,
+                        color: Colors.white24,
+                        size: 32,
+                      );
+                    }
+                    if (imageUrl.startsWith('http')) {
+                      return Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.broken_image,
+                          color: Colors.white30,
+                        ),
+                      );
+                    }
+                    return Image.asset(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.broken_image, color: Colors.white30),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 16),

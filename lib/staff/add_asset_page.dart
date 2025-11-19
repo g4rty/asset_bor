@@ -47,7 +47,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
     setState(() => _isLoading = true);
 
     final uri = Uri.parse(
-      '${AppConfig.baseUrl}/api/assets',
+      '${AppConfig.baseUrl}/staff/assets',
     ); // ⚠️ Replace with your backend URL
     final request = http.MultipartRequest('POST', uri);
 
@@ -238,7 +238,7 @@ class _AddAssetPageState extends State<AddAssetPage> {
                   // Status Dropdown
                   DropdownButtonFormField<String>(
                     value: _status,
-                    items: ['Available', 'Borrowed', 'Disabled']
+                    items: ['Available', 'Disabled']
                         .map(
                           (status) => DropdownMenuItem(
                             value: status,

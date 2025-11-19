@@ -41,7 +41,7 @@ class BorrowHistory {
     return BorrowHistory(
       item: j['asset_name'] ?? '-',
       borrowId: j['request_id'].toString(),
-      approver: j['approver_name'] ?? '-',
+      approver: j['approve_by'] ?? j['approver_name'] ?? '-',
       receiver: j['receiver_name'] ?? '-',
       requestDate: j['request_date'] ?? '-',
       borrowDate: j['borrow_date'] ?? '-',
@@ -72,7 +72,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   String _formatDateOnly(String dateTime) {
     if (dateTime == '-' || dateTime.isEmpty) return '-';
-
     try {
       final dt = DateTime.parse(dateTime).toLocal();
       return '${dt.day.toString().padLeft(2, '0')} ${_monthShort(dt.month)} ${dt.year % 100}';
@@ -83,7 +82,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   String _formatTimeOnly(String dateTime) {
     if (dateTime == '-' || dateTime.isEmpty) return '';
-
     try {
       final dt = DateTime.parse(dateTime).toLocal();
       return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
@@ -355,7 +353,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Request ${item.borrowId} · Asset ${item.item}',
+                  '${item.item}',
                   style: const TextStyle(
                     color: Color(0xFFD4FF00),
                     fontSize: 16,
@@ -364,17 +362,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
                 const SizedBox(height: 6),
 
+                // Corrected Date Display
                 Text(
-                  'Date: ${_formatDateOnly(item.borrowDate)} · '
-                  '${_formatTimeOnly(item.requestDate)} - '
-                  '${_formatDateOnly(item.returnDate)} · '
-                  '${_formatTimeOnly(item.requestDate)}',
+                  'Date: ${_formatDateOnly(item.borrowDate)} · ${_formatTimeOnly(item.borrowDate)} - '
+                  '${_formatDateOnly(item.returnDate)} · ${_formatTimeOnly(item.returnDate)}',
                   style: const TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 6),
 
                 Text(
-                  'Approve By: ${item.approver}',
+                  'Decision by: ${item.approver}',
                   style: const TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 6),
