@@ -7,6 +7,7 @@ import 'student_assets_list.dart';
 import '../../auth_storage.dart';
 import '../../login.dart';
 import '../config.dart';
+import 'package:asset_bor/shared/backend_image.dart';
 
 class BorrowHistory {
   final String item;
@@ -18,7 +19,7 @@ class BorrowHistory {
   final String requestDate;
   final String objective;
   final String status;
-  final String imagePath;
+  final String? imageUrl;
   final String? actualReturnDate;
   final String? rejectionReason;
 
@@ -32,7 +33,7 @@ class BorrowHistory {
     required this.returnDate,
     required this.objective,
     required this.status,
-    required this.imagePath,
+    required this.imageUrl,
     this.actualReturnDate,
     this.rejectionReason,
   });
@@ -50,9 +51,7 @@ class BorrowHistory {
       objective: j['objective'] ?? '-',
       status: j['decision_status'] ?? '-',
       rejectionReason: j['rejection_reason'],
-      imagePath: j['asset_image'] != null && j['asset_image'].isNotEmpty
-          ? 'assets/images/${j['asset_image']}'
-          : 'assets/images/placeholder.png',
+      imageUrl: backendImageUrl(j['asset_image'] as String?),
     );
   }
 }
@@ -344,7 +343,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
             height: 130,
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
-            child: Image.asset(item.imagePath, fit: BoxFit.cover),
+            child: backendImageWidget(
+              item.imageUrl,
+              fit: BoxFit.cover,
+              placeholder: const Icon(
+                Icons.image_outlined,
+                color: Colors.white30,
+                size: 32,
+              ),
+            ),
           ),
           const SizedBox(width: 16),
 

@@ -8,7 +8,9 @@ import 'package:asset_bor/staff/staff_assets_list.dart';
 import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:asset_bor/staff/staff_home_page.dart';
 import 'package:http/http.dart' as http;
+import 'package:asset_bor/shared/backend_image.dart';
 import 'package:asset_bor/shared/logout.dart'; // ⭐ ปุ่ม Logout
+import 'package:asset_bor/shared/navbar.dart';
 
 class StaffHistoryPage extends StatefulWidget {
   const StaffHistoryPage({super.key});
@@ -24,7 +26,6 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
   late Future<List<HistoryItem>> _future;
 
   int _selectedIndex = 3; // หน้า History
-  final Color _accentColor = const Color(0xFFD8FFA3);
 
   HistoryFilter _selectedFilter = HistoryFilter.all;
 
@@ -52,65 +53,28 @@ class _StaffHistoryPageState extends State<StaffHistoryPage> {
       ),
 
       body: SafeArea(child: _buildBody()),
-      bottomNavigationBar: _buildBottomNavBar(),
+      bottomNavigationBar: NavBar(index: _selectedIndex, onTap: _handleNavTap),
     );
   }
 
-  // ----------------- Bottom Navigation Bar -----------------
-
-  Widget _buildBottomNavBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      color: Colors.black,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(icon: Icons.home, index: 0),
-          _buildNavItem(icon: Icons.shopping_bag_outlined, index: 1),
-          _buildNavItem(icon: Icons.list_alt_outlined, index: 2),
-          _buildNavItem(icon: Icons.history, index: 3),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem({required IconData icon, required int index}) {
-    final bool isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () async {
-        setState(() => _selectedIndex = index);
-
-        if (index == 0) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StaffHomePage()),
-          );
-        } else if (index == 1) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StaffAssetsList()),
-          );
-        } else if (index == 2) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const StaffHandPage()),
-          );
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isSelected ? _accentColor : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.black : Colors.white,
-          size: 26,
-        ),
-      ),
-    );
+  void _handleNavTap(int index) {
+    if (index == _selectedIndex) return;
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StaffHomePage()),
+      );
+    } else if (index == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StaffAssetsList()),
+      );
+    } else if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const StaffHandPage()),
+      );
+    }
   }
 
   // ----------------- Body + Filter tabs -----------------
@@ -339,12 +303,16 @@ class _HistoryCard extends StatelessWidget {
               width: 96,
               height: 96,
               color: _imgBg,
-              child: item.assetImage != null && item.assetImage!.isNotEmpty
-                  ? Image.asset(
-                      'assets/images/${item.assetImage!}',
-                      fit: BoxFit.cover,
-                    )
-                  : const Icon(Icons.image, color: Colors.white24, size: 36),
+              child: backendImageWidget(
+                item.assetImage,
+                fit: BoxFit.cover,
+                placeholder: const Icon(
+                  Icons.image,
+                  color: Colors.white24,
+                  size: 36,
+                ),
+                error: const Icon(Icons.broken_image, color: Colors.white70),
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -454,7 +422,7 @@ class _HistoryCard extends StatelessWidget {
 
     if (status == 'pending') {
       return _chip(
-        const Color(0xFFABE0FF), // ฟ้าอ่อนสำหรับ pending
+        const Color.fromARGB(255, 250, 255, 147), // ฟ้าอ่อนสำหรับ pending
         'Pending',
       );
     }

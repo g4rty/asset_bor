@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:asset_bor/config.dart';
+import 'package:asset_bor/shared/backend_image.dart';
+import 'package:asset_bor/shared/logout.dart';
+import 'package:asset_bor/shared/navbar.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:asset_bor/staff/add_asset_page.dart';
@@ -7,7 +10,6 @@ import 'package:asset_bor/staff/edit_asset_page.dart';
 import 'package:asset_bor/staff/staff_handin-out_page.dart';
 import 'package:asset_bor/staff/staff_history_page.dart';
 import 'package:asset_bor/staff/staff_home_page.dart';
-import 'package:asset_bor/shared/logout.dart';
 
 class StaffAssetsList extends StatefulWidget {
   const StaffAssetsList({super.key});
@@ -49,59 +51,24 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
     }
   }
 
-  Widget _buildBottomNavBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-      color: Colors.black,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(icon: Icons.home, index: 0),
-          _buildNavItem(icon: Icons.shopping_bag_outlined, index: 1),
-          _buildNavItem(icon: Icons.list_alt_outlined, index: 2),
-          _buildNavItem(icon: Icons.history, index: 3),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem({required IconData icon, required int index}) {
-    final bool isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () async {
-        setState(() => _selectedIndex = index);
-
-        if (index == 0) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StaffHomePage()),
-          );
-        } else if (index == 2) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StaffHandPage()),
-          );
-        } else if (index == 3) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StaffHistoryPage()),
-          );
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isSelected ? _accentColor : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: isSelected ? Colors.black : Colors.white,
-          size: 26,
-        ),
-      ),
-    );
+  void handleNavTap(int index) {
+    if (index == _selectedIndex) return;
+    if (index == 0) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const StaffHomePage()),
+      );
+    } else if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const StaffHandPage()),
+      );
+    } else if (index == 3) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const StaffHistoryPage()),
+      );
+    }
   }
 
   Color getStatusColor(String status) {
@@ -127,12 +94,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
         ? 'Out of Stock'
         : statusRaw;
     final desc = asset['description'] ?? '';
-    final imageFile = asset['image'] ?? '';
-    final isUploadFile = imageFile.contains('-');
-
-    final imageUrl = isUploadFile
-        ? '${AppConfig.baseUrl}/uploads/$imageFile'
-        : 'assets/images/$imageFile';
+    final imageUrl = backendImageUrl(asset['image'] as String?)!;
 
     return Container(
       width: double.infinity,
@@ -153,21 +115,14 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: imageFile.isEmpty
+              child: imageUrl == null
                   ? const Center(
                       child: Icon(
                         Icons.image_not_supported,
                         color: Colors.white54,
                       ),
                     )
-                  : isUploadFile
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.broken_image, color: Colors.white70),
-                    )
-                  : Image.asset(
+                  : Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) =>
@@ -280,6 +235,10 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
                       );
                       if (newAsset != null) fetchAssets();
                     },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 82, 243, 255),
+                      foregroundColor: Colors.black,
+                    ),
                     label: const Text('Add'),
                     icon: const Icon(Icons.create_new_folder_sharp),
                   ),
@@ -302,7 +261,7 @@ class _StaffAssetsListState extends State<StaffAssetsList> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
+      bottomNavigationBar: NavBar(index: _selectedIndex, onTap: handleNavTap),
     );
   }
 }

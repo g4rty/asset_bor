@@ -8,6 +8,7 @@ import 'history_screen.dart';
 import '../../auth_storage.dart';
 import '../../login.dart';
 import '../config.dart';
+import 'package:asset_bor/shared/backend_image.dart';
 
 class CancelStatusScreen extends StatefulWidget {
   const CancelStatusScreen({super.key});
@@ -375,10 +376,8 @@ class _CancelStatusScreenState extends State<CancelStatusScreen> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(20),
-                        child: Image.asset(
-                          'assets/images/${_assetImage ?? "default.png"}',
-                          width: double.infinity,
-                          height: 280,
+                        child: backendImageWidget(
+                          _assetImage,
                           fit: BoxFit.cover,
                         ),
                       ),

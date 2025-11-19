@@ -8,6 +8,7 @@ import 'student_home_page.dart';
 import 'student_assets_list.dart';
 import 'cancel_status_screen.dart';
 import 'history_screen.dart';
+import 'package:asset_bor/shared/backend_image.dart';
 
 import '../../auth_storage.dart';
 
@@ -217,6 +218,8 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
       return '${date.day} ${months[date.month]} ${date.year % 100}';
     }
 
+    final imageKey = asset['imageUrl'] ?? asset['image'];
+
     return Scaffold(
       backgroundColor: _scaffoldBg,
       appBar: AppBar(
@@ -253,13 +256,15 @@ class _StudentRequestFormState extends State<StudentRequestForm> {
                     child: InteractiveViewer(
                       minScale: 1,
                       maxScale: 3,
-                      child: asset['image'] != null
-                          ? Image.asset(asset['image'], fit: BoxFit.contain)
-                          : const Icon(
-                              Icons.image,
-                              size: 50,
-                              color: Colors.white54,
-                            ),
+                      child: backendImageWidget(
+                        imageKey as String?,
+                        fit: BoxFit.contain,
+                        placeholder: const Icon(
+                          Icons.image,
+                          size: 50,
+                          color: Colors.white54,
+                        ),
+                      ),
                     ),
                   ),
                 ),

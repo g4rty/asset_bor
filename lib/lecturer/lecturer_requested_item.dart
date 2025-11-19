@@ -5,6 +5,7 @@ import 'package:asset_bor/config.dart';
 import 'package:asset_bor/lecturer/lecturer_asset_list.dart';
 import 'package:asset_bor/lecturer/lecturer_history.dart';
 import 'package:asset_bor/lecturer/lecturer_home_page.dart';
+import 'package:asset_bor/shared/backend_image.dart';
 import 'package:asset_bor/shared/logout.dart';
 import 'package:asset_bor/shared/navbar.dart';
 import 'package:asset_bor/login.dart';
@@ -80,7 +81,9 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
   Future approveAPI(int requestId) async {
     final userId = await AuthStorage.getUserId();
     if (userId == null) return;
-    final url = Uri.parse('${AppConfig.baseUrl}/lecturers/requests/$requestId/approve');
+    final url = Uri.parse(
+      '${AppConfig.baseUrl}/lecturers/requests/$requestId/approve',
+    );
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -94,7 +97,9 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
   Future rejectAPI(int requestId, String reason) async {
     final userId = await AuthStorage.getUserId();
     if (userId == null) return;
-    final url = Uri.parse('${AppConfig.baseUrl}/lecturers/requests/$requestId/reject');
+    final url = Uri.parse(
+      '${AppConfig.baseUrl}/lecturers/requests/$requestId/reject',
+    );
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -129,23 +134,15 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
                   width: 64,
                   height: 64,
                   color: const Color(0xFF2C2C2E),
-                  child: (() {
-                    final path = item['asset_image'] as String?;
-                    if (path == null || path.trim().isEmpty) {
-                      return const Icon(
-                        Icons.image,
-                        color: Colors.white24,
-                        size: 28,
-                      );
-                    }
-                    if (path.startsWith('http')) {
-                      return Image.network(path, fit: BoxFit.cover);
-                    }
-                    return Image.asset(
-                      'assets/images/$path',
-                      fit: BoxFit.cover,
-                    );
-                  }()),
+                  child: backendImageWidget(
+                    item['asset_image'] as String?,
+                    fit: BoxFit.cover,
+                    placeholder: const Icon(
+                      Icons.image,
+                      color: Colors.white24,
+                      size: 28,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -222,117 +219,110 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
   }
 
   Future<void> confirmReject(Map<String, dynamic> item) async {
-    final controller = TextEditingController();
     String selected = rejectRequestOptions.first;
-    String? reason;
-    try {
-      reason = await showDialog<String>(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (_, setState) => AlertDialog(
-            backgroundColor: const Color(0xFF2C2C2E),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+    String customReason = '';
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (_, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF2C2C2E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Rejected Requests',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
             ),
-            title: const Text(
-              'Rejected Requests',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ...rejectRequestOptions.map(
-                    (option) => RadioListTile<String>(
-                      value: option,
-                      groupValue: selected,
-                      onChanged: (value) =>
-                          setState(() => selected = value ?? selected),
-                      activeColor: const Color(0xFFDFFFAE),
-                      title: Text(
-                        option,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  RadioListTile<String>(
-                    value: 'Other',
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ...rejectRequestOptions.map(
+                  (option) => RadioListTile<String>(
+                    value: option,
                     groupValue: selected,
                     onChanged: (value) =>
                         setState(() => selected = value ?? selected),
                     activeColor: const Color(0xFFDFFFAE),
-                    title: const Text(
-                      'Other',
-                      style: TextStyle(color: Colors.white),
+                    title: Text(
+                      option,
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
-                  if (selected == 'Other')
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3A3A3C),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: TextField(
-                        controller: controller,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(
-                          hintText: 'Reason',
-                          hintStyle: TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
-                        ),
+                ),
+                RadioListTile<String>(
+                  value: 'Other',
+                  groupValue: selected,
+                  onChanged: (value) =>
+                      setState(() => selected = value ?? selected),
+                  activeColor: const Color(0xFFDFFFAE),
+                  title: const Text(
+                    'Other',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                if (selected == 'Other')
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3A3A3C),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: TextField(
+                      onChanged: (value) => customReason = value,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        hintText: 'Reason',
+                        hintStyle: TextStyle(color: Colors.white54),
+                        border: InputBorder.none,
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
-            actions: [
-              TextButton(
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFDFFFAE),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                onPressed: () {
-                  final v = selected == 'Other'
-                      ? controller.text.trim()
-                      : selected;
-                  Navigator.pop(context, v);
-                },
-                child: const Text('Confirm'),
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFFF07A7A),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-            ],
           ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFDFFFAE),
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              onPressed: () {
+                final v = selected == 'Other' ? customReason.trim() : selected;
+                Navigator.pop(context, v);
+              },
+              child: const Text('Confirm'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFF07A7A),
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
         ),
-      );
-    } finally {
-      controller.dispose();
-    }
+      ),
+    );
 
     if (reason != null && reason.trim().isNotEmpty) {
       await rejectAPI(item['request_id'] as int, reason.trim());
@@ -375,8 +365,6 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
     final borrowDate = item['borrow_date'];
     final returnDate = item['return_date'];
     final reason = ((item['reason'] as String?) ?? '').trim();
-    final imagePath = ((item['asset_image'] as String?) ?? '').trim();
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -392,22 +380,15 @@ class _LecturerRequestedItemState extends State<LecturerRequestedItem> {
               width: 110,
               height: 110,
               color: const Color(0xFF2C2C2E),
-              child: (() {
-                if (imagePath.isEmpty) {
-                  return const Icon(
-                    Icons.image,
-                    color: Colors.white24,
-                    size: 36,
-                  );
-                }
-                if (imagePath.startsWith('http')) {
-                  return Image.network(imagePath, fit: BoxFit.cover);
-                }
-                return Image.asset(
-                  'assets/images/$imagePath',
-                  fit: BoxFit.cover,
-                );
-              }()),
+              child: backendImageWidget(
+                item['asset_image'] as String?,
+                fit: BoxFit.cover,
+                placeholder: const Icon(
+                  Icons.image,
+                  color: Colors.white24,
+                  size: 36,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 16),
