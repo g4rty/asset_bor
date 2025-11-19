@@ -5,9 +5,11 @@ import 'package:http/http.dart' as http;
 import '../auth_storage.dart';
 import '../config.dart';
 import '../login.dart';
+
 import 'staff_assets_list.dart';
 import 'staff_history_page.dart';
 import 'staff_home_page.dart';
+import 'package:asset_bor/shared/logout.dart'; // ⭐ เพิ่ม import ปุ่ม logout
 
 class StaffHandPage extends StatefulWidget {
   const StaffHandPage({super.key});
@@ -42,11 +44,25 @@ class _StaffHandPageState extends State<StaffHandPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1F1F1F),
+
+      // ⭐ AppBar + ปุ่ม Logout
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1F1F1F),
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: const Text(
+          "Hand-in / Hand-out",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        actions: const [LogoutButton(iconColor: Colors.white)],
+      ),
+
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 24),
+            // ถ้าไม่อยากให้ Title ซ้ำกับ AppBar จะลบบล็อกนี้ออกก็ได้
+            const SizedBox(height: 8),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Text(
@@ -266,6 +282,7 @@ class _StaffHandPageState extends State<StaffHandPage> {
 
 class HandItem {
   final int requestId;
+  final int assetId; // ⭐ Asset ID
   final String assetName;
   final String borrowerName;
   final String? assetImage;
@@ -273,6 +290,7 @@ class HandItem {
 
   HandItem({
     required this.requestId,
+    required this.assetId,
     required this.assetName,
     required this.borrowerName,
     this.assetImage,
@@ -281,11 +299,12 @@ class HandItem {
 
   factory HandItem.fromJson(Map<String, dynamic> j) {
     return HandItem(
-      requestId: j["request_id"],
-      assetName: j["asset_name"],
-      borrowerName: j["borrower_name"],
-      assetImage: j["asset_image"],
-      reason: j["reason"],
+      requestId: j["request_id"] as int,
+      assetId: j["asset_id"] as int,
+      assetName: j["asset_name"] as String,
+      borrowerName: j["borrower_name"] as String,
+      assetImage: j["asset_image"] as String?,
+      reason: j["reason"] as String?,
     );
   }
 }
@@ -341,6 +360,17 @@ class _HandCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // หัว Request + Asset ID
+                Text(
+                  'Request ${item.requestId} • Asset ${item.assetId}',
+                  style: const TextStyle(
+                    color: Color(0xFFD8FFA3),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+
                 _infoLine("Item", item.assetName),
                 _infoLine("Borrower", item.borrowerName),
                 if (item.reason != null)
@@ -408,13 +438,56 @@ class _HandCard extends StatelessWidget {
 
     if (res.statusCode == 200) {
       onActionDone();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("$actionLabel success")));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF4CAF50), // เขียว success
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 10),
+              Text(
+                "$actionLabel success",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: ${res.body}")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 10),
+              Text(
+                "Error: ${res.body}",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 }

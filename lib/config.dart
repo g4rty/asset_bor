@@ -12,6 +12,6 @@ class AppConfig {
 // }
 
 // pub
-// class AppConfig {
-//   static const String baseUrl = 'http://localhost:3000';
-// }
+class AppConfig {
+  static const String baseUrl = 'http://192.168.49.72:3000';
+}
