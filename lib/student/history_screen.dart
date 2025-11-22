@@ -320,7 +320,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       textColor = Colors.white;
     } else if (isReturned) {
       statusColor = const Color(0xFFD4FFAA);
-      statusText = 'Returned: ${item.actualReturnDate ?? '-'}';
+      statusText = 'Returned: ${_formatDateOnly(item.actualReturnDate ?? '-')}';
       textColor = Colors.black;
     } else {
       statusColor = Colors.white24;
@@ -374,8 +374,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                 // Corrected Date Display
                 Text(
-                  'Date: ${_formatDateOnly(item.borrowDate)} · ${_formatTimeOnly(item.borrowDate)} - '
-                  '${_formatDateOnly(item.returnDate)} · ${_formatTimeOnly(item.returnDate)}',
+                  'Date: ${_formatDateOnly(item.borrowDate)} - ${_formatDateOnly(item.returnDate)}',
                   style: const TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 6),
@@ -399,7 +398,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 const SizedBox(height: 6),
 
                 Text(
-                  'Actual Return: ${item.actualReturnDate == '-' ? '-' : item.actualReturnDate}',
+                  'Actual Return: ${item.actualReturnDate == '-' ? '-' : _formatDateOnly(item.actualReturnDate!)}',
                   style: const TextStyle(color: Colors.white70),
                 ),
                 const SizedBox(height: 12),

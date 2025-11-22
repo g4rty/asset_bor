@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 import '../auth_storage.dart';
 import '../config.dart';
@@ -245,6 +246,9 @@ class HandItem {
   final String borrowerName;
   final String? assetImage;
   final String? reason;
+  final bool isLate;
+  final String? borrowDate;
+  final String? returnDate;
 
   HandItem({
     required this.requestId,
@@ -253,6 +257,9 @@ class HandItem {
     required this.borrowerName,
     this.assetImage,
     this.reason,
+    required this.isLate,
+    this.borrowDate,
+    this.returnDate,
   });
 
   factory HandItem.fromJson(Map<String, dynamic> j) {
@@ -263,6 +270,9 @@ class HandItem {
       borrowerName: j["borrower_name"] as String,
       assetImage: j["asset_image"] as String?,
       reason: j["reason"] as String?,
+      isLate: (j["is_late"] as int? ?? 0) == 1,
+      borrowDate: j["borrow_date_th"] as String? ?? j["borrow_date"] as String?,
+      returnDate: j["return_date_th"] as String? ?? j["return_date"] as String?,
     );
   }
 }
@@ -322,18 +332,47 @@ class _HandCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // หัว Request + Asset ID
-                Text(
-                  'Request ${item.requestId} • Asset ${item.assetId}',
-                  style: const TextStyle(
-                    color: Color(0xFFD8FFA3),
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Request ${item.requestId} • Asset ${item.assetId}',
+                        style: const TextStyle(
+                          color: Color(0xFFD8FFA3),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (item.isLate)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Text(
+                          'LATE',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 6),
 
                 _infoLine("Item", item.assetName),
                 _infoLine("Borrower", item.borrowerName),
+                if (item.borrowDate != null)
+                  _infoLine("Borrow Date", _formatDate(item.borrowDate)),
+                if (item.returnDate != null)
+                  _infoLine("Return Date", _formatDate(item.returnDate)),
                 if (item.reason != null)
                   _infoLine("Objective", item.reason ?? "-"),
               ],
@@ -557,6 +596,16 @@ class _HandCard extends StatelessWidget {
           duration: const Duration(seconds: 2),
         ),
       );
+    }
+  }
+
+  String _formatDate(String? raw) {
+    if (raw == null || raw.isEmpty) return '-';
+    try {
+      final parsed = DateTime.parse(raw).toLocal();
+      return DateFormat('dd MMM yy').format(parsed);
+    } catch (_) {
+      return raw;
     }
   }
 }
